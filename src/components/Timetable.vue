@@ -3,9 +3,10 @@
         <div v-if="selectedCells.length" class="backdrop"></div>
         <div class="container" :class="selectedCells.length?'active':''">
             <div class="timetable__dateline" :class="selectedCells.length?'active':''">
-                <div class="timetable__date"><p>{{date}}</p></div>
+                <div class="timetable__date" :class="today?'today':''"><p>{{date}}</p></div>
             </div>
             <div class="timetable__content" :class="selectedCells.length?'active':''">
+                <div v-if="today" class="redLine" :style="moveRedLine()"></div>
                 <div class="timetable__fields">
                     <div class="timetable__field empty"></div>
                     <div class="timetable__field"
@@ -41,6 +42,8 @@
 </template>
 <script>
 import OrderPopup from './OrderPopup.vue'
+import * as dayjs from 'dayjs'
+import 'dayjs/locale/ru'
 export default {
     components: {OrderPopup},
     props: ['id', 'date'],
@@ -72,11 +75,15 @@ export default {
             timelines: [],
             firstSelected: null,
             selectedCells: [],
-            orderInfo: {date: this.date, duration: 30, durationRange: 1}
+            orderInfo: {date: this.date, duration: 30, durationRange: 1},
+            today: this.date===dayjs().format('DD MMMM, dd')
         }
     },
     mounted(){
         this.generateTime();
+        if(this.today){
+            this.moveRedLine();
+        }
     },
     methods: {
         generateTime(){
@@ -135,18 +142,27 @@ export default {
             }
         },
         setOrderInfo(startIdx, endIdx = startIdx){
-            if(this.selectedCells.length===1){
-                this.orderInfo ={...this.orderInfo, startTime: this.timelines[startIdx], durationRange: endIdx-startIdx+1}
-                this.orderInfo = {...this.orderInfo, endTime: this.timelines[endIdx+1], durationRange: endIdx-startIdx+1}
-            }
-            else if(this.selectedCells.length>1){
-                this.orderInfo = {...this.orderInfo, startTime: this.timelines[startIdx], endTime: this.timelines[endIdx+1], durationRange: endIdx-startIdx+1}
-            }
+             this.orderInfo = {...this.orderInfo, startTime: this.timelines[startIdx], endTime: this.timelines[endIdx+1], durationRange: endIdx-startIdx+1}
         },
         closePopup(){
             this.selectedCells = []
             this.orderInfo = {date: this.date, duration: 30, durationRange: 1}
             this.firstSelected = null
+        },
+        moveRedLine(){
+            const CELL_WIDTH = 49;
+            const MARGIN_BETWEEN_CELLS = 1 
+            const MARGIN_LEFT = 62
+            let now = `${dayjs().format('HH')}:${dayjs().minute()<30?'00':'30'}` 
+            let redlineIdx;
+            for(let i=0;i<this.timelines.length;i++){
+                if(now===this.timelines[i]){
+                    redlineIdx = i
+                    break
+                }
+            }
+            return `left:${MARGIN_LEFT+Math.floor(CELL_WIDTH/2)+(CELL_WIDTH+MARGIN_BETWEEN_CELLS)*redlineIdx}px`
+
         }
     }
 }
@@ -177,6 +193,11 @@ export default {
         position: relative
         display: flex
         height: 151px
+        .redLine
+            position: absolute
+            width: 1px
+            height: 100%
+            background: red
         .timetable__fields
             width: 37px
             height: 100%
@@ -236,4 +257,6 @@ export default {
 .active
     z-index: 11
     background: inherit
+.today
+    color: red
 </style>
