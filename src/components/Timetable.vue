@@ -1,12 +1,12 @@
 <template>
-    <div class="timetable">
-        <div v-if="selectedCells.length" class="backdrop"></div>
-        <div class="container" :class="selectedCells.length?'active':''">
-            <div class="timetable__dateline" :class="selectedCells.length?'active':''">
-                <div class="timetable__date" :class="today?'today':''"><p>{{date}}</p></div>
+    <div class="timetable" :style="date<today?'pointer-events: none':''">
+        <div v-if="getLen" class="backdrop"></div>
+        <div class="container" :class="getLen?'active':''">
+            <div class="timetable__dateline" :class="getLen?'active':''">
+                <slot name="timeline"></slot>
             </div>
-            <div class="timetable__content" :class="selectedCells.length?'active':''">
-                <div v-if="today" class="redLine" :style="moveRedLine()"></div>
+            <div class="timetable__content" :class="getLen?'active':''">
+                <div v-if="today===date" class="redLine" :style="moveRedLine()"></div>
                 <div class="timetable__fields">
                     <div class="timetable__field empty"></div>
                     <div class="timetable__field"
@@ -27,11 +27,12 @@
                         v-for="field in facility" :key="field.id"
                     >
                         <div class="timetable__cell"
-                            v-for="time, index in timelines" :key="index"
+                            v-for="time, index in timelines.slice(0,-1)" :key="index"
                             @click="makeOrder(index, field.id)"
                             :class="selectedCells.indexOf(`${field.id}_${index}`)>=0?'selected':''"
+                            :style="timelineStyles[field.id][index]"
                         >
-                            +
+                            {{getPrice}}
                         </div>
                     </div>
                 </div>
@@ -46,65 +47,33 @@ import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 export default {
     components: {OrderPopup},
-    props: ['id', 'date'],
+    props: ['id', 'date', 'infoAboutDay', 'facility'],
     data(){
         return{
-            facility: {
-                field1: {
-                    id: 1,
-                    name: "#1 Spartak Arena",
-                    startWork: 10,
-                    endWork: 23,
-                    price: 5000,
-                },
-                field2: {
-                    id: 2,
-                    name: "#2 Lokomotiv Arena",
-                    startWork: 8,
-                    endWork: 22,
-                    price: 5000
-                },
-                field3: {
-                    id: 3,
-                    name: "#3 Dinamo Arena",
-                    startWork: 9,
-                    endWork: 24,
-                    price: 5000,
-                },
-            },
             timelines: [],
             firstSelected: null,
             selectedCells: [],
             orderInfo: {date: this.date, duration: 30, durationRange: 1},
-            today: this.date===dayjs().format('DD MMMM, dd')
+            today: dayjs().format('DD MMMM, dd'),
+            timelineStyles: {}
         }
     },
-    mounted(){
+    created(){
         this.generateTime();
-        if(this.today){
+        this.disableTime();
+        if(this.today===this.date){
             this.moveRedLine();
         }
     },
     methods: {
         generateTime(){
-            let startTime = 25; //Нужно найти самое рано начинающее время среди полей
-            let endTime = -1; //Нужно найти самое поздно заканчивающее время среди полей
-            for(const key in this.facility){
-                startTime = Math.min(this.facility[key]['startWork'], startTime)
-                endTime = Math.max(this.facility[key]['endWork'], endTime)
-            }
-                
-
-            //Генерируем время
-            for(let i = startTime; i<endTime;i++){
+            for(let i = 5;i<29;i++){
                 let real_i = i%24;
-                let time = real_i < 10 ? `0${real_i}` : `${real_i}`;
+                const time = real_i < 10 ? `0${real_i}` : `${real_i}`;
                 this.timelines.push(`${time}:00`);
                 this.timelines.push(`${time}:30`);
             }
-
-
-
+            this.timelines.push(this.timelines[0]);
         },
         makeOrder(index, fieldId){ // Нужны и индекс ячейки, и индекс поля
             if(!this.firstSelected){ //Если еще ничего не выбрано
@@ -163,7 +132,39 @@ export default {
             }
             return `left:${MARGIN_LEFT+Math.floor(CELL_WIDTH/2)+(CELL_WIDTH+MARGIN_BETWEEN_CELLS)*redlineIdx}px`
 
-        }
+        },
+        disableTime(){
+            for(const f in this.facility){
+                let styleField = []
+                let infoForField = this.infoAboutDay[f]
+                let startIdx = this.timelines.indexOf(infoForField.start_time)<0?0:this.timelines.indexOf(infoForField.start_time)//2
+                let endIdx = this.timelines.indexOf(infoForField.end_time)<0?this.timelines.length:this.timelines.indexOf(infoForField.end_time)//0
+                for(let j = 0;j<this.timelines.length-1;j++){
+                    if(startIdx>=endIdx){
+                        for(let s = endIdx;s<startIdx;s++){
+                            styleField[s] = 'pointer-events: none; background: grey'
+                        }
+                    }
+                    else{
+                        for(let s = 0;s<startIdx;s++){
+                            styleField[s] = 'pointer-events: none; background: grey'
+                        }
+                        for(let s = endIdx;s<this.timelines.length;s++){
+                            styleField[s] = 'pointer-events: none; background: grey'
+                        }
+                    }
+                }
+                this.timelineStyles[this.facility[f].id]=styleField
+            }
+        },
+    },
+    computed:{
+        getLen: function(){
+            return this.selectedCells.length
+        },
+        getPrice: function(){
+            return '+'
+        }   
     }
 }
 </script>
@@ -244,6 +245,7 @@ export default {
                 display: flex
                 justify-content: center
                 align-items: center
+                cursor: pointer
 .selected
     outline: 1px solid red
 .backdrop 
