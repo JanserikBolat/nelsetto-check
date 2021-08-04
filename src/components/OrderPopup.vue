@@ -6,7 +6,7 @@
                 <p class="new__order">Новый заказ</p>
             </div>
             <div class="order__duration__wrapper">
-                <p class="order__duration">{{getDuration(orderInfo.duration, orderInfo.durationRange)}}</p>
+                <p class="order__duration">{{duration}}</p>
             </div>
             <div class="close__popup" @click="closePopup">
                 <div class="close__button"></div>
@@ -14,34 +14,61 @@
         </div>
         <div class="popup__orderDescription">
             <div class="order__desription">
-                <p class="order__date">{{orderInfo.date}}</p>
-                <p class="order__time">{{orderInfo.startTime}}:{{orderInfo.endTime}}</p>
+                <p class="order__date">{{getDateFormat}}</p>
+                <p class="order__time">{{start_time}} - {{end_time}}</p>
+                <p class="order__cost">{{price}} тг</p>
             </div>
-            <div class="continue__order">
-                <button class="continue__button" @click="continueOrder()">Продолжить</button>
-            </div>
+            <select v-model="orderType" class="order__type">
+                <option v-for="type, index in types" :key="index">{{type}}</option>
+            </select>
+        </div>
+        <div class="continue__order">
+            <button class="continue__button" @click="continueOrder()">Продолжить</button>
         </div>
         </div>
     </div>
 </template>
 <script>
+import {mapState, mapGetters} from 'vuex'
+ import { uuid } from 'vue-uuid'
+import * as dayjs from 'dayjs'
+import 'dayjs/locale/ru'
 export default({
-    props: ['orderInfo'],
+    data(){
+        return{
+            types: ['Разовая бронь', 'Долгосрочная бронь'], 
+            orderType: 'Разовая бронь',
+            uuid: uuid.v1()
+        }
+    },
     mounted(){
-        console.log(this.orderInfo)
+        this.$store.dispatch('booking/resetState')
+        this.$store.dispatch('order/resetState')
     },
     methods: {
        closePopup(){
            this.$emit('closePopup')
        },
-       getDuration(duration, durationRange){
-           const totalMinutes = duration*durationRange
-           const hours = Math.floor(totalMinutes/60)
-           const minutes = totalMinutes%60
-           return `${hours} ч ${minutes} мин`
-       },
        continueOrder(){
-           this.$router.push({name: 'order', params: {date: this.orderInfo.date, time: `${this.orderInfo.startTime}-${this.orderInfo.endTime}`}})
+           if(this.orderType==='Разовая бронь'){
+               this.$store.dispatch('booking/setBookingId', 1);
+               this.$store.dispatch('order/setDate', {start_date: this.date, end_date: this.date})
+               this.$store.dispatch('order/addBooking', this.getBooking)
+               }
+            this.$store.dispatch('order/setType', this.orderType)
+            this.$store.dispatch('order/setId', this.getUniqueId)
+           this.$router.push({name: 'order'})
+       }
+   },
+   computed:{
+        ...mapState('booking', ['date', 'price', 'start_time', 'end_time', 'duration']),
+        ...mapGetters('booking', ['getBooking']),
+       getUniqueId(){
+          const uId = this.$uuid.v4();
+          return uId; 
+       },
+       getDateFormat(){
+           return dayjs(this.date).format('DD MMMM, dd');
        }
    }
 })
@@ -56,7 +83,8 @@ export default({
     height: 120px
     background: #fff
     box-shadow: 0px -4px 8px rgba(0, 0, 0, 0.04), 0px 0px 2px rgba(0, 0, 0, 0.06), 0px 0px 1px rgba(0, 0, 0, 0.04)
-    z-index: 15
+    z-index: 16
+    height: 166px
     .popup__inner
         margin: 10px 16px 22px
         position: relative
@@ -87,7 +115,6 @@ export default({
                     font-size: 20px
                     line-height: 32px
                     color: #000
-
             .close__popup
                 position: absolute
                 width: 24px
@@ -117,10 +144,10 @@ export default({
                     transform: rotate(-45deg)
         .popup__orderDescription
             display: flex
-            flex-direction: row
-            align-items: flex-start
+            justify-content: flex-start
+            align-items: center
             margin-top: 16px
-            .order__date, .order__time
+            .order__date, .order__time, .order__cost
                 margin: 0
                 font-family: Roboto
                 font-style: normal
@@ -133,10 +160,24 @@ export default({
             .order__time
                 width: 81px
                 height: 20px
-        .continue__button
-            background: #FFFFFF
-            border: 1px solid #9D9D9D
-            padding: 5px 7px
-            margin-left: 31px
-            margin-top: 10px
+            .order__cost
+                width: 81px
+                height: 20px
+            .order__type
+                margin-left: 25px
+                cursor: pointer
+        .continue__order
+            display: flex
+            justify-content: center
+            align-items: center
+            .continue__button
+                background: #FFFFFF
+                border: 1px solid #9D9D9D
+                height: 30px
+                width: 100%
+                text-align: center
+            :hover
+                background: #000
+                color: #fff
+                cursor: pointer
 </style>

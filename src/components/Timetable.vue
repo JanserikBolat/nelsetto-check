@@ -1,16 +1,13 @@
 <template>
-    <div class="timetable" :style="date<today?'pointer-events: none':''">
-        <div v-if="getLen" class="backdrop"></div>
+    <div class="timetable" :style="!isAvaiable?'pointer-events: none':''" :id="id">
+        <div v-if="getLen||show" class="backdrop" @click="closePopup"></div>
         <div class="container" :class="getLen?'active':''">
-            <div class="timetable__dateline" :class="getLen?'active':''">
-                <slot name="timeline"></slot>
-            </div>
             <div class="timetable__content" :class="getLen?'active':''">
-                <div v-if="today===date" class="redLine" :style="moveRedLine()"></div>
+                <div v-if="isToday" class="redLine" :style="moveRedLine()"></div>
                 <div class="timetable__fields">
                     <div class="timetable__field empty"></div>
                     <div class="timetable__field"
-                        v-for="field in facility" :key="field.id"
+                        v-for="field in facility.fields" :key="field.id"
                     >
                         {{field.id}}
                     </div>
@@ -24,44 +21,57 @@
                         </div>
                     </div>
                     <div class="timetable__cells"
-                        v-for="field in facility" :key="field.id"
+                        v-for="field in facility.fields" :key="field.id"
                     >
-                        <div class="timetable__cell"
+                        <Cell
                             v-for="time, index in timelines.slice(0,-1)" :key="index"
-                            @click="makeOrder(index, field.id)"
-                            :class="selectedCells.indexOf(`${field.id}_${index}`)>=0?'selected':''"
+                            @makeOrder="makeOrder(index, field.id)"
+                            @showInfoAboutOrder="showOrderInfo(index, field.id)"
+                            :class="{'selected':selectedCells.indexOf(`${field.id}_${index}`)>=0, 'blocked': !isAvaiable}"
                             :style="timelineStyles[field.id][index]"
+                            :value="!isEmpty?cellValues[field.id][index]:''"
                         >
-                            {{getPrice}}
-                        </div>
+                        </Cell>
                     </div>
                 </div>
             </div>
         </div>
-         <OrderPopup v-if="selectedCells.length" :orderInfo="this.orderInfo" @closePopup ='closePopup()' />  
+         <OrderPopup v-if="selectedCells.length&&!show"  @closePopup ='closePopup()' />
+         <OrderInfoPopup v-if="show" :info="infoToShow"/> 
     </div>  
 </template>
 <script>
 import OrderPopup from './OrderPopup.vue'
+import Cell from './Cell.vue'
+import OrderInfoPopup  from './OrderInfoPopup.vue'
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 export default {
-    components: {OrderPopup},
-    props: ['id', 'date', 'infoAboutDay', 'facility'],
+    components: {OrderPopup, Cell, OrderInfoPopup},
+    props: ['id', 'date', 'infoAboutDay', 'buttonNeeded'],
     data(){
         return{
             timelines: [],
             firstSelected: null,
             selectedCells: [],
-            orderInfo: {date: this.date, duration: 30, durationRange: 1},
-            today: dayjs().format('DD MMMM, dd'),
-            timelineStyles: {}
+            duration: 30, 
+            durationRange: 1,
+            today: dayjs(),
+            timelineStyles: {},
+            cellValues: {},
+            leftScroll: 0,
+            facility: JSON.parse(localStorage.getItem('facility')),
+            show: false,
+            orders: JSON.parse(localStorage.getItem('orderInfo')),
+            infoToShow: {}
         }
     },
     created(){
         this.generateTime();
         this.disableTime();
-        if(this.today===this.date){
+        this.getPrice();
+        this.getOrders();
+        if(this.isToday){
             this.moveRedLine();
         }
     },
@@ -76,11 +86,12 @@ export default {
             this.timelines.push(this.timelines[0]);
         },
         makeOrder(index, fieldId){ // Нужны и индекс ячейки, и индекс поля
+            this.moveTableToCenter();
             if(!this.firstSelected){ //Если еще ничего не выбрано
                 this.selectedCells = []
                 this.selectedCells.push(`${fieldId}_${index}`) //Добавляем id в массив
                 this.firstSelected = {fieldId, cellId: index} // Присваиваем выбранную ячейку
-                this.setOrderInfo(index)
+                this.setOrderInfo(index, fieldId)
             }
             else{//Если уже первый элемент выбран
                 if(fieldId===this.firstSelected.fieldId){ // Можно выбирать время только на одном поле
@@ -94,7 +105,7 @@ export default {
                         //Использую мин и макс для того чтобы админ мог выбирать в двух направлениях
                         let i = Math.min(this.firstSelected.cellId, index)
                         let end = Math.max(this.firstSelected.cellId, index)
-                        this.setOrderInfo(i, end)
+                        this.setOrderInfo(i,fieldId, end)
                         for(;i<=end;i++){
                             this.selectedCells.push(`${fieldId}_${i}`)
                         }
@@ -103,20 +114,31 @@ export default {
                 }
                 else{
                     //Если админ выбирает время на другом поле, то очищаем предыдущие значения, а выбранное присваиваем
-                    this.setOrderInfo(index)
+                    this.setOrderInfo(index, fieldId)
                     this.firstSelected = {fieldId, cellId: index}
                     this.selectedCells = []
                     this.selectedCells.push(`${fieldId}_${index}`)
                 }
             }
         },
-        setOrderInfo(startIdx, endIdx = startIdx){
-             this.orderInfo = {...this.orderInfo, startTime: this.timelines[startIdx], endTime: this.timelines[endIdx+1], durationRange: endIdx-startIdx+1}
+        setOrderInfo(startIdx, f, endIdx = startIdx){
+            let sum = 0
+            for(let i = startIdx;i<endIdx+1;i++){
+                sum+=this.cellValues[f][i]
+            }
+            this.durationRange = endIdx-startIdx+1;
+            this.$store.dispatch('booking/setBookingTime', {start_time: this.timelines[startIdx], end_time: this.timelines[endIdx+1]});
+            this.$store.dispatch('booking/setBookingField', f)
+            this.$store.dispatch('booking/setBookingDate', this.getDayIfMidnight)
+            this.$store.dispatch('booking/setBookingPrice', sum);
+            this.$store.dispatch('booking/setDuration', this.getDuration)
         },
         closePopup(){
             this.selectedCells = []
-            this.orderInfo = {date: this.date, duration: 30, durationRange: 1}
+            this.orderInfo = {description: '', date: this.date, duration: 30, durationRange: 1}
             this.firstSelected = null
+            this.show = false
+            this.$store.dispatch('booking/resetState');
         },
         moveRedLine(){
             const CELL_WIDTH = 49;
@@ -130,135 +152,220 @@ export default {
                     break
                 }
             }
-            return `left:${MARGIN_LEFT+Math.floor(CELL_WIDTH/2)+(CELL_WIDTH+MARGIN_BETWEEN_CELLS)*redlineIdx}px`
+            const left = MARGIN_LEFT+Math.floor(CELL_WIDTH/2)+(CELL_WIDTH+MARGIN_BETWEEN_CELLS)*redlineIdx
+            this.leftScroll = left
+            return `left:${left}px`
 
         },
+        moveTableToCenter(){
+            document.getElementById(this.id).scrollIntoView({behavior:'smooth', block: 'center'});
+        },
         disableTime(){
-            for(const f in this.facility){
+            for(const f in this.facility.fields){
                 let styleField = []
                 let infoForField = this.infoAboutDay[f]
-                let startIdx = this.timelines.indexOf(infoForField.start_time)<0?0:this.timelines.indexOf(infoForField.start_time)//2
-                let endIdx = this.timelines.indexOf(infoForField.end_time)<0?this.timelines.length:this.timelines.indexOf(infoForField.end_time)//0
+                let startIdx = this.timelines.indexOf(infoForField.start_time)<0?0:this.timelines.indexOf(infoForField.start_time)
+                let endIdx = this.timelines.indexOf(infoForField.end_time)<0?this.timelines.length:this.timelines.indexOf(infoForField.end_time)
                 for(let j = 0;j<this.timelines.length-1;j++){
                     if(startIdx>=endIdx){
                         for(let s = endIdx;s<startIdx;s++){
-                            styleField[s] = 'pointer-events: none; background: grey'
+                            styleField[s] = 'pointer-events: none; background: black'
                         }
                     }
                     else{
                         for(let s = 0;s<startIdx;s++){
-                            styleField[s] = 'pointer-events: none; background: grey'
+                            styleField[s] = 'pointer-events: none; background: black'
                         }
                         for(let s = endIdx;s<this.timelines.length;s++){
-                            styleField[s] = 'pointer-events: none; background: grey'
+                            styleField[s] = 'pointer-events: none; background: black'
                         }
                     }
                 }
-                this.timelineStyles[this.facility[f].id]=styleField
+                this.timelineStyles[this.facility.fields[f].id]=styleField
             }
+        },
+        getPrice: function(){
+            if(this.isAvaiable){
+                for(const f in this.infoAboutDay){
+                    const priceKeys = Object.keys(this.infoAboutDay[f].price).map(e=>this.timelines.indexOf(e))
+                    const prices = Object.keys(this.infoAboutDay[f].price).map(e=>this.infoAboutDay[f].price[e])
+                    const cell_prices = []
+                    for(let i = 0;i<priceKeys.length-1;i++){
+                        for(let j = priceKeys[i];j<priceKeys[i+1];j++){
+                            cell_prices[j] = prices[i]
+                        }
+                    }
+                    if(priceKeys[priceKeys.length-1]>this.timelines.indexOf(this.infoAboutDay[f].end_time)){
+                        for(let i = 0;i<this.timelines.indexOf(this.infoAboutDay[f].end_time);i++){
+                            cell_prices[i] = prices[prices.length-1]
+                        }
+                        for(let i = priceKeys[priceKeys.length-1];i<this.timelines.length-1;i++){
+                            cell_prices[i] = prices[prices.length-1]
+                        }
+                    }
+                    else{
+                        for(let i = priceKeys[priceKeys.length-1];i<this.timelines.indexOf(this.infoAboutDay[f].end_time);i++){
+                            cell_prices[i] = prices[prices.length-1]
+                        }
+                    }
+                    this.cellValues[this.facility.fields[f].id] = cell_prices
+                }
+            }
+            
+        },
+        getOrders: function(){
+            for(const order in this.orders){
+                for(const booking in this.orders[order]['bookings']){
+                    
+                    if(dayjs(this.orders[order]['bookings'][booking]['date']).format('DD-MM-YYYY')===this.date.format('DD-MM-YYYY')){
+                        let e_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['end_time'])
+                        let s_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['start_time'])
+                        
+                        let f_idx = this.orders[order]['bookings'][booking]['field_id']
+                        for(let i = s_idx;i<e_idx;i++){
+                            this.cellValues[f_idx][i] = this.orders[order].client.client_name
+                        }
+                    }
+                }
+            }
+        },
+        showOrderInfo: function(idx, f_idx){
+            this.selectedCells = []
+            for(const order in this.orders){
+                for(const booking in this.orders[order]['bookings']){
+                    let bkng = this.orders[order]['bookings'][booking]
+                    if(dayjs(bkng.date).format('DD-MM-YYYY')===this.date.format('DD-MM-YYYY')){
+                        if(bkng.field_id===f_idx){
+                            let s_idx = this.timelines.indexOf(bkng.start_time)
+                            let e_idx = this.timelines.indexOf(bkng.end_time)
+                            if(idx>=s_idx&&idx<e_idx){
+                                this.infoToShow = {...this.orders[order], "bookingInfo":bkng}
+                            }
+                        }
+                    }
+                }
+            }
+            this.show = true
         },
     },
     computed:{
         getLen: function(){
             return this.selectedCells.length
         },
-        getPrice: function(){
-            return '+'
-        }   
+        isAvaiable: function(){
+            return this.date.diff(this.today, 'day', false)>=0
+        },
+        isEmpty: function(){
+            return Object.keys(this.cellValues).length===0
+        },
+        isToday: function(){
+            return this.date.format('DD MMMM, dd')===this.today.format('DD MMMM, dd')
+        },
+        getDayIfMidnight: function(){
+            let b = this.$store.state.booking;
+            const MIDNIGHT = '00:00';
+            if(this.timelines.indexOf(b.start_time)>=this.timelines.indexOf(MIDNIGHT)){
+                return this.date.add(1, 'day');
+            }
+            else{
+                return this.date;
+            }
+        },
+        getDuration: function(){
+           const totalMinutes = this.duration*this.durationRange
+           const hours = Math.floor(totalMinutes/60)
+           const minutes = totalMinutes%60
+           return `${hours} ч ${minutes} мин`
+       }
     }
 }
 </script>
-<style  lang = "sass" scoped>
-.timetable
-    width: max-content
-    height: 195px
-    background-color: #DEDEDE
-    position: relative
-    .timetable__dateline
-        position: sticky
-        left: 0
-        top: 0
-        width: 100vw
-        height: 44px
-        background-color: #fff
-        overflow: hidden
-        .timetable__date
-            p
-                margin-left: 8px
-                margin-top: 20px
-                font-family: 'Roboto', sans-serif
-                font-weight: 700
-                font-size: 16px
-
-    .timetable__content
-        position: relative
-        display: flex
-        height: 151px
-        .redLine
-            position: absolute
-            width: 1px
-            height: 100%
-            background: red
-        .timetable__fields
-            width: 37px
-            height: 100%
-            left: 0
-            background: #DEDEDE
-            position: sticky
-            .timetable__field
-                display: flex
-                justify-content: center
-                align-items: center
-                width: 37px
-                height: 30px
-                margin-bottom: 10px
-            .empty
-                margin-bottom: 0
-        .timetable__timeline, .timetable__cells
-            display: flex
-            .timetable__time
-                width: 49px
-                height: 30px
-                margin-left: 1px
-                p
-                    width: 35px
-                    height: 20px
-                    text-align: center
-                    margin: 6px 5px 8px
-                    padding: 0
-                    font-family: 'Roboto', sans-serif
-                    font-size: 14px
-                    line-height: 20px
-        .timetable__cells
-            height: 30px
-            margin-bottom: 10px
-            margin-left: 25px
-            .timetable__cell
-                width: 49px
-                height: 100%
-                margin-left: 1px
-                background-color: #fff
-                font-family: 'Roboto', sans-serif
-                font-size: 12px
-                line-height: 20px
-                color: rgba(0,0,0,0.5)
-                display: flex
-                justify-content: center
-                align-items: center
-                cursor: pointer
-.selected
-    outline: 1px solid red
-.backdrop 
-  position: fixed
-  top: 0
-  left: 0
-  bottom: 0
-  right: 0
-  background-color: rgba(0, 0, 0, 0.3)
-  z-index: 10
-.active
-    z-index: 11
-    background: inherit
-.today
-    color: red
+<style  lang = "scss">
+*{
+    margin: 0;
+    padding: 0;
+}
+.timetable{
+    width: max-content;
+    height: 151px;
+    background-color: #DEDEDE;
+    position: relative;
+    &__content{
+        position: relative;
+        display: flex;
+        height: 151px;
+        .redLine{
+            position: absolute;
+            width: 1px;
+            height: 100%;
+            background: red;
+            }
+    }
+        &__fields{
+            width: 37px;
+            height: 100%;
+            left: 0;
+            background: #DEDEDE;
+            position: sticky;
+            }
+            &__field{
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                width: 37px;
+                height: 30px;
+                margin-bottom: 10px;
+                }
+            .empty{
+                margin-bottom: 0;
+                }
+        &__timeline, &__cells{
+            display: flex;
+        }
+            &__time{
+                width: 49px;
+                height: 30px;
+                margin-left: 1px;
+                p{
+                    width: 35px;
+                    height: 20px;
+                    text-align: center;
+                    margin: 6px 5px 8px;
+                    padding: 0;
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 14px;
+                    line-height: 20px;
+                    }
+            }
+        &__cells{
+            height: 30px;
+            margin-bottom: 10px;
+            margin-left: 25px;
+        }
+.selected{
+    outline: 1px solid red;
+    }
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+  }
+.active{
+    z-index: 11;
+    background: inherit;
+}
+.timetable__dateline.active{
+    background: #fff;
+} 
+.today{
+    color: red;
+    }
+.blocked{
+    background: #000!important;
+    }
+}
 </style>
