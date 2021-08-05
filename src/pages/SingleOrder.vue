@@ -8,6 +8,7 @@
                 <p class="order__status">{{order.status}}</p>
             </template>
         </ConfirmHeader>
+        <confirmation-card v-show="order.status==='В ожидании'" @updateLocalStorage="updateLocalStorage"/>
         <OrderInfo :buttonNeeded="false">
             <template v-slot:extraInfo>
                 <div class="order__paytype flex">
@@ -32,6 +33,7 @@ import ConfirmHeader from '../components/ConfirmHeader.vue'
 import OrderInfo from '../components/OrderInfo.vue'
 import MiniOrderCard from '../components/MiniOrderCard.vue'
 import PaymentPopup from '../components/PaymentPopup.vue'
+import ConfirmationCard from '../components/ConfirmationCard.vue'
 export default {
     data(){
         return{
@@ -40,7 +42,7 @@ export default {
             bId: ''
         }
     },
-  components: { ConfirmHeader, OrderInfo, MiniOrderCard, PaymentPopup},
+  components: { ConfirmHeader, OrderInfo, MiniOrderCard, PaymentPopup,ConfirmationCard},
   computed: {
       ...mapState('order', ['order']),
       ...mapGetters('order', ['getOrder', 'getAllPaid', 'getRemainMoney']),
@@ -64,6 +66,7 @@ export default {
                 if(this.getOrder.bookings[i].bookingId===this.bId){
                     const localBookings = this.getOrder.bookings;
                     localBookings[i] = {...this.getOrder.bookings[i], paid: this.getOrder.bookings[i].paid+money};
+                    this.$store.dispatch('booking/setBookingPaid', money)
                     this.$store.dispatch('order/replaceBooking', localBookings);
                     break;
                 }
@@ -74,7 +77,7 @@ export default {
         updateLocalStorage(order){
             let oId = order.orderId;
             for(let i=0;i<this.orders.length;i++){
-                if(this.orders[i].orderId==oId){
+                if(this.orders[i].orderId===oId){
                     this.orders[i] = order;
                 }
             }

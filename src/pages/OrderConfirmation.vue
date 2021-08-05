@@ -1,6 +1,9 @@
 <template>
     <div class="confirmation__wrapper">
         <confirm-header>
+            <template v-slot:main>
+                <p class="order__id">Заказ №{{getOrderId}}</p>
+            </template>
             <template v-slot:status>
                 <p class="order__status">{{order.status}}</p>
             </template>
@@ -53,6 +56,7 @@ export default {
                 if(this.getOrder.bookings[i].bookingId===this.bId){
                     const localBookings = this.getOrder.bookings;
                     localBookings[i] = {...this.getOrder.bookings[i], paid: this.getOrder.bookings[i].paid+money};
+                    this.$store.dispatch('booking/setBookingPaid', money)
                     this.$store.dispatch('order/replaceBooking', localBookings);
                     break;
                 }

@@ -28,16 +28,11 @@
     </div>
 </template>
 <script>
-import axios from 'axios'
 import OrderInfo from '../components/OrderInfo.vue'
 import OrderHeader from '../components/OrderHeader.vue'
 import { required, minLength, maxLength } from 'vuelidate/lib/validators'
 export default {
     components: { OrderInfo, OrderHeader},
-    async created(){
-        const {data} = await axios.get("https://random-data-api.com//api/users/random_user?size=15")
-        this.data = data
-    },
     data(){
         return{
             search: '',

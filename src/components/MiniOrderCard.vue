@@ -11,7 +11,7 @@
                     <p>Площадка {{getBooking.field_id}}</p>
                     <p>Остаток:  {{getRemainMoney}}₸</p>
                 </div>
-                <div class="bottom__payment" @click="addPayment()" v-if="getRemainMoney>0">
+                <div class="bottom__payment" @click.stop="addPayment()" v-if="getRemainMoney>0&&order.status!=='В ожидании'">
                     Добавить оплату
                 </div>
             </div>
@@ -39,8 +39,9 @@ export default {
             this.$emit('addPayment', this.bookingId)
         },
         goToBookingCard(){
-            console.log('A')
-            this.$router.push({path:`/order/:${this.order.orderId}/:${this.bookingId}`})
+            if(this.order.status!=='В ожидании'){
+                this.$router.push({path:`/order/:${this.order.orderId}/booking/:${this.bookingId}`})
+            }
         
         }
     },

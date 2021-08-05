@@ -41,10 +41,6 @@ export default({
             uuid: uuid.v1()
         }
     },
-    mounted(){
-        this.$store.dispatch('booking/resetState')
-        this.$store.dispatch('order/resetState')
-    },
     methods: {
        closePopup(){
            this.$emit('closePopup')

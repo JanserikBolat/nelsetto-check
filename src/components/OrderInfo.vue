@@ -31,12 +31,12 @@
                     <p class="remaininPayload__value">{{getRemainMoney}} ₸</p>
                 </div>
             </div>
-            <div  @click="discountAdd=true" class="discount__button" v-if="buttonNeeded">
+            <div  @click="buttonClicked()" class="discount__button" v-if="buttonNeeded">
                 Добавить скидку
             </div>
             <div class="discount__input" v-if="discountAdd">
                 <label for="discount">Пожалуйста, введите сумму скидки <span style="font-weight: 700">на одну бронь</span></label>
-                <input type="text" id="discount" v-model="discount">
+                <input type="text" id="discount" v-model="discount" value="" ref="discount__button">
                 <button @click="cancelDiscount()">Отмена</button>
                 <button @click="addDiscount()">Ок</button>
             </div>
@@ -51,19 +51,24 @@ export default {
     props: ['buttonNeeded'],
     data(){
         return{
-            discount: !this.getAllDiscount?0:this.getAllDiscount,
+            discount: !this.getAllDiscount?'':this.getAllDiscount,
             discountAdd: false
         }
     },
     methods: {
+        buttonClicked(){
+            this.discountAdd=true
+            this.$refs['discount__button'].focus();
+        },
         addDiscount(){
             this.discountAdd = false
             this.$store.dispatch('order/setBookingDiscount', parseInt(this.discount))
             this.$store.dispatch('booking/setBookingDiscount', parseInt(this.discount))
             this.$emit('getDiscount', this.discount);
+            this.discount = '';
         },
         cancelDiscount(){
-            this.discount = 0;
+            this.discount = '';
             this.discountAdd = false;
             this.$store.dispatch('order/setBookingDiscount', 0)
             this.$store.dispatch('booking/setBookingDiscount', 0);

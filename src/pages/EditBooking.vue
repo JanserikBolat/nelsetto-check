@@ -17,30 +17,58 @@
 <script>
 import ConfirmHeader from '../components/ConfirmHeader.vue'
 import EditCard from '../components/EditCard.vue'
-import {mapState} from 'vuex'
+import {mapGetters, mapState} from 'vuex'
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 export default {
     data(){
         return{
-            hasChanged: false
+            hasChanged: false,
+            changed: {},
+            orders: JSON.parse(localStorage.getItem('orderInfo'))
         }
     },
     components: {ConfirmHeader, EditCard},
     computed:{
-        ...mapState('booking', ['date']),
+        ...mapState('booking', ['date', 'bookingId']),
         ...mapState('order', ['order']),
+        ...mapGetters('order', ['getOrder']),
+        ...mapGetters('booking', ['getBooking']),
         getDateFormat(){
             return dayjs(this.date).locale('ru').format('DD MMMM')
         },
     },
     methods: {
         saveChanges(){
-            console.log("AAAAA")
+            this.$store.dispatch('booking/setBookingTime', this.changed.time)
+            this.$store.dispatch('booking/setBookingPrice', this.changed.price)
+            this.$store.dispatch('booking/setBookingDate', this.changed.date)
+            this.$store.dispatch('booking/setBookingField', this.changed.field_id)
+            this.$store.dispatch('booking/setDuration', this.changed.duration)
+
+            for(let i = 0;i<this.getOrder.bookings.length;i++){
+                if(this.getOrder.bookings[i].bookingId===this.bookingId){
+                    const localBookings = this.getOrder.bookings;
+                    localBookings[i] = this.getBooking
+                    this.$store.dispatch('order/replaceBooking', localBookings);
+                    break;
+                }
+            }
+            this.updateLocalStorage(this.getOrder);
         },
-        hasChangedMethod(value){
+        hasChangedMethod(value, changed){
             this.hasChanged = value;
-        }
+            this.changed = changed;
+        },
+        updateLocalStorage(order){
+            let oId = order.orderId;
+            for(let i=0;i<this.orders.length;i++){
+                if(this.orders[i].orderId===oId){
+                    this.orders[i] = order;
+                }
+            }
+            localStorage.setItem('orderInfo', JSON.stringify(this.orders));
+        },
     }
 }
 </script>

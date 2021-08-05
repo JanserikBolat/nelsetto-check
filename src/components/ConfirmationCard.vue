@@ -12,7 +12,7 @@
                     <input maxlength="1" type="text"  @keyup="handleClick('two','three', 'four')" inputmode="tel" ref="three">
                     <input maxlength="1" type="text"  @keyup="handleClick('three', 'four', '')" inputmode="tel" ref="four" >
                 </div>
-                <div class="sendConfirmation" @click="sendOrder">
+                <div class="sendConfirmation" @click="sendOrder()">
                     Отправить
                 </div>
             </div>

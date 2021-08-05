@@ -50,14 +50,15 @@ const router =  new VueRouter({
             path: '/order/:id',
             name: 'singleOrder',
             component: SingleOrder,
+            props: (route)=>({...route.params})
         },
         {
-            path: '/order/:id/:id',
+            path: '/order/:id/booking/:bookingid',
             name:'singleBooking',
             component: SingleBooking
         },
         {
-            path: '/order/:id/:id/edit',
+            path: '/order/:id/booking/:bookingid/edit',
             name: 'edit',
             component: EditBooking
         },

@@ -44,6 +44,8 @@ export default {
     },
     methods: {
         resetStore(){
+            this.$store.dispatch('order/resetState')
+            this.$store.dispatch('booking/resetState')
             this.$router.push({path:'/orders'})
         }
     }

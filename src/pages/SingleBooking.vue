@@ -38,7 +38,7 @@ export default {
     },
     components: {ConfirmHeader, BookingCard},
     computed: {
-        ...mapState('booking', ['date']),
+        ...mapState('booking', ['date', 'bookingId']),
         ...mapState('order', ['order']),
         getDateFormat(){
             return dayjs(this.date).locale('ru').format('DD MMMM')
@@ -52,7 +52,7 @@ export default {
     },
     methods: {
         goToEdit(){
-            this.$router.push({path:`/order/:${this.order.orderId}/:${this.bookingId}/edit`})
+            this.$router.push({path:`/order/:${this.order.orderId}/booking/:${this.bookingId}/edit`})
         }
     }
 }
