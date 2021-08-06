@@ -129,7 +129,7 @@ export default {
             this.durationRange = endIdx-startIdx+1;
             this.$store.dispatch('booking/setBookingTime', {start_time: this.timelines[startIdx], end_time: this.timelines[endIdx+1]});
             this.$store.dispatch('booking/setBookingField', f)
-            this.$store.dispatch('booking/setBookingDate', this.getDayIfMidnight)
+            this.$store.dispatch('booking/setBookingDate', this.dateFormat(this.getDayIfMidnight, this.timelines[endIdx+1]))
             this.$store.dispatch('booking/setBookingPrice', sum);
             this.$store.dispatch('booking/setDuration', this.getDuration)
         },
@@ -215,14 +215,19 @@ export default {
         getOrders: function(){
             for(const order in this.orders){
                 for(const booking in this.orders[order]['bookings']){
-                    
-                    if(dayjs(this.orders[order]['bookings'][booking]['date']).format('DD-MM-YYYY')===this.date.format('DD-MM-YYYY')){
-                        let e_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['end_time'])
-                        let s_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['start_time'])
-                        
-                        let f_idx = this.orders[order]['bookings'][booking]['field_id']
-                        for(let i = s_idx;i<e_idx;i++){
-                            this.cellValues[f_idx][i] = this.orders[order].client.client_name
+                    let day = this.date;
+                    if(this.timelines.indexOf(this.orders[order]['bookings'][booking]['start_time'])>=this.timelines.indexOf('00:00')){
+                        day = day.add(1, 'day')
+                    }
+                    if(dayjs(this.orders[order]['bookings'][booking]['date']).format('DD-MM-YYYY')===day.format('DD-MM-YYYY')){
+                        if(this.orders[order].status!=='Отменено'){
+                            let e_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['end_time'])
+                            let s_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['start_time'])
+
+                            let f_idx = this.orders[order]['bookings'][booking]['field_id']
+                            for(let i = s_idx;i<e_idx;i++){
+                                this.cellValues[f_idx][i] = this.orders[order].client.client_name
+                            }
                         }
                     }
                 }
@@ -246,6 +251,9 @@ export default {
             }
             this.show = true
         },
+        dateFormat(date, h){
+            return dayjs(date).hour(parseInt(h.split(':')[0])).minute(parseInt(h.split(':')[1])).second(0)
+        }
     },
     computed:{
         getLen: function(){

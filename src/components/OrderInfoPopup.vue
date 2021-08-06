@@ -77,7 +77,7 @@
                         {{getRemainMoney}}
                     </div>
                 </div>
-                <div class="orderInfo__button">
+                <div class="orderInfo__button" @click="goToBooking()">
                     Перейти к брони
                 </div>
             </div>
@@ -87,13 +87,11 @@
 <script>
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
-dayjs.extend(customParseFormat)
 export default {
     props: ['info'],
     computed: {
         getDate: function(){
-            return dayjs(this.info['bookingInfo'].date).format('DD MMMM')
+            return dayjs(this.info['bookingInfo'].date).locale('ru').format('DD MMMM')
         },
         getRemainMoney: function(){
             return this.info.bookingInfo.price-(this.info.bookingInfo.paid+this.info.bookingInfo.booking_discount)
@@ -108,6 +106,14 @@ export default {
                 }
             }
             return c;
+        }
+    },
+    methods: {
+        goToBooking(){
+            console.log(this.info)
+            this.$store.dispatch('order/setOrder', this.info)
+            this.$store.dispatch('booking/setBooking', this.info.bookingInfo)
+            this.$router.push({path:`/order/:${this.info.orderId}/booking/:${this.info.bookingInfo.bookingId}`})
         }
     }
 }

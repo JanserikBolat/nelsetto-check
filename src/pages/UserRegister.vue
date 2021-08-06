@@ -26,9 +26,10 @@ export default {
     },
     methods: {
       goBack(){
-          this.$router.push({path:'/'})
-        
-      },
+            this.$store.dispatch('booking/resetState')
+            this.$store.dispatch('order/resetState')
+            this.$router.push({path: '/' })
+        },
     createOrder(userExists){
       localStorage.setItem('orderInfo', JSON.stringify([...this.orders, this.getOrder]))
       if(!userExists){this.addUser();}

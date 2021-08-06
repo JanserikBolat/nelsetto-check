@@ -30,8 +30,14 @@ export default {
                     this.filteredOrders = this.getWaiting
                     break
                 case 'Архив':
-                    console.log(this.getArchive)
                     this.filteredOrders = this.getArchive
+                    console.log(this.filteredOrders)
+                    this.filteredOrders.forEach(element => {
+                        if(element.status!=='Отменено'&&element.status!=='Завершено'){
+                            element.status = 'Завершено';
+                        }
+                    });
+                    this.filteredOrders.forEach(e=>this.updateLocalStorage(e));
                     break
             }
         }
@@ -45,7 +51,19 @@ export default {
         },
         getArchive(){
             return this.orders.filter(e=>e.bookings.filter(el=>{
-                return dayjs(el.date).diff(this.today, 'day', true)<=1}).length>0)
+                console.log(dayjs(el.date).diff(this.today, 'day', true), el.date)
+                return dayjs(el.date).diff(this.today, 'day', true)<0||e.status==='Отменено'||e.status==='Завершено'}).length>0)
+        }
+    },
+    methods:{
+         updateLocalStorage(order){
+            let oId = order.orderId;
+            for(let i=0;i<this.orders.length;i++){
+                if(this.orders[i].orderId===oId){
+                    this.orders[i] = order;
+                }
+            }
+            localStorage.setItem('orderInfo', JSON.stringify(this.orders));
         }
     }
 }

@@ -1,5 +1,5 @@
 <template>
-    <div class="main__content" :class="{'fullPay': fullPay}">
+    <div class="main__content" :class="{'fullPay': fullPay}" @click="goToBooking()">
         <div class="content__inner">
             <div class="content_top">
                 <div class="contentTop__inner">
@@ -29,7 +29,7 @@
                 </div>
             </div>
             <div v-if='!fullPay' class="content__bottom">
-                    <div class="payload__button" @click="addPayload()">
+                    <div class="payload__button" @click.stop="addPayload()">
                         Добавить оплату
                     </div>
             </div>
@@ -51,6 +51,11 @@ export default {
         addPayload(){
             this.$emit('addPayload', this.info.orderId, this.info.booking.bookingId)
         },
+        goToBooking(){
+            this.$store.dispatch('order/setOrder', this.info)
+            this.$store.dispatch('booking/setBooking', this.info.booking)
+            this.$router.push({path:`/order/:${this.info.orderId}/booking/:${this.info.booking.bookingId}`})
+        }
     }
 }
 </script>

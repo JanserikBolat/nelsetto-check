@@ -19,7 +19,7 @@
         </div>  
     </div>
     <booking-card v-show="active==='info'" />
-    <div class="edit">
+    <div class="edit" v-show="orderValid">
         <div class="edit__button" @click="goToEdit()">Редактировать</div>
     </div>
 </div>
@@ -48,6 +48,9 @@ export default {
                 return this.order.orderId.substring(0,5)+'...';
             }
             return this.order.orderId
+        },
+        orderValid(){
+            return this.order.status!=='Отменено'&&this.order.status!=='В ожидании'&&this.order.status!=='Завершено'
         }
     },
     methods: {

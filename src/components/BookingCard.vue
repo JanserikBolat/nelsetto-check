@@ -21,14 +21,14 @@
                 <p class="discount key">Сумма скидки:</p>
                 <p class="discount value">{{booking_discount}} тг</p>
             </div>
-            <div v-show="getRemainMoney>0" class="discount__button" @click="addDiscount()">
+            <div v-show="getRemainMoney>0&&orderValid" class="discount__button" @click="addDiscount()">
                 Добавить скидку
             </div>
             <div class="booking__paid">
                 <p class="paid key">Оплачено:</p>
                 <p class="paid value">{{paid}} тг</p>
             </div>
-            <div v-show="getRemainMoney>0" class="pay__button" @click="addPay()">
+            <div v-show="getRemainMoney>0&&orderValid" class="pay__button" @click="addPay()">
                 Добавить оплату
             </div>
             <div class="booking__remaining">
@@ -97,7 +97,10 @@ export default {
         ...mapState('booking', ['bookingId','start_time', 'end_time', 'field_id', 'booking_discount', 'price', 'paid']),
         ...mapState('order', ['order']),
         ...mapGetters('booking', ['getRemainMoney', 'getBooking']),
-        ...mapGetters('order', ['getOrder'])
+        ...mapGetters('order', ['getOrder']),
+        orderValid(){
+            return this.order.status!=='Отменено'
+        }
     }
 }
 </script>

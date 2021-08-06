@@ -3,7 +3,7 @@
         <div class="miniCard__inner">
             <div class="miniCard__top">
                 <span class="order__date">{{capitalizeAndFormat(getBooking.date)}}</span>
-                <span class="order__edit"><i class="fas fa-pen"></i></span>
+                <span class="order__edit" v-show="orderValid&&order.status!=='Завершено'" @click.stop="goToEdit()"><i class="fas fa-pen"></i></span>
             </div>
             <div class="miniCard__bottom">
                 <div class="bottom__description">
@@ -11,7 +11,7 @@
                     <p>Площадка {{getBooking.field_id}}</p>
                     <p>Остаток:  {{getRemainMoney}}₸</p>
                 </div>
-                <div class="bottom__payment" @click.stop="addPayment()" v-if="getRemainMoney>0&&order.status!=='В ожидании'">
+                <div class="bottom__payment" @click.stop="addPayment()" v-if="getRemainMoney>0&&orderValid">
                     Добавить оплату
                 </div>
             </div>
@@ -39,10 +39,11 @@ export default {
             this.$emit('addPayment', this.bookingId)
         },
         goToBookingCard(){
-            if(this.order.status!=='В ожидании'){
                 this.$router.push({path:`/order/:${this.order.orderId}/booking/:${this.bookingId}`})
-            }
         
+        },
+        goToEdit(){
+            this.$router.push({path:`/order/:${this.order.orderId}/booking/:${this.bookingId}/edit`})
         }
     },
     computed: {
@@ -51,6 +52,9 @@ export default {
         ...mapGetters('booking', ['getRemainMoney']),
         getBooking(){
             return this.getOrder.bookings.filter(e=>e.bookingId===this.bookingId)[0]
+        },
+        orderValid(){
+            return this.order.status!=='В ожидании'&&this.order.status!=='Отменено'
         }
     }
 

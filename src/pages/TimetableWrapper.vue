@@ -40,8 +40,9 @@ export default {
         setDate(){
             dayjs.locale('ru')
             var day = dayjs()
-            day = day.subtract(7, 'day')
+            day = day.subtract(7, 'day').hour(0).minute(0).second(0)
             for(let i = 0;i<30;i++){
+                console.log(day)
                 this.infoAboutDay.push(this.setInfo(day.day()))
                 this.dates.push(day)
                 day = day.add(1, 'day')

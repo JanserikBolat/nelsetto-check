@@ -21,7 +21,7 @@
                 </div>
             </template>
         </OrderInfo>
-        <div class="cancel__order" v-show="!isPaid">
+        <div class="cancel__order" v-show="!isPaid&&!IsArchive">
             <p class="cancelOrder__btn" @click="cancelOrder()">Отменить все</p>
         </div>
         <div class="miniCards">
@@ -57,6 +57,9 @@ export default {
         },
         isPaid(){
             return this.getAllPaid>0;
+        },
+        IsArchive(){
+            return this.order.status==='Отменено'||this.order.status==='Завершено';
         }
   },
   methods: {
@@ -90,10 +93,10 @@ export default {
             localStorage.setItem('orderInfo', JSON.stringify(this.orders));
         },
         cancelOrder(){
-            const newOrderInfo = this.orders.filter(el=>el.orderId!==this.order.orderId)
-            localStorage.setItem('orderInfo', JSON.stringify(newOrderInfo));
-            this.$store.dispatch('order/resetState');
-            this.$store.dispatch('booking/resetState')
+            this.$store.dispatch('order/setStatus', 'Отменено')
+            this.updateLocalStorage(this.getOrder);
+            this.$store.dispatch('order/resetStore');
+            this.$store.dispatch('booking/resetStore');
             this.$router.push('/orders')
         }
   }

@@ -7,7 +7,7 @@
             </div>
             <div class="card__content">
                 <div class="content__left">
-                    <p class="date">{{formatDate(order.start_date)}} - {{formatDate(order.start_date)}}</p>
+                    <p class="date">{{formatDate(order.start_date)}} - {{formatDate(order.end_date)}}</p>
                     <p class="time">{{getTime}}</p>
                     <p class="field">Площадка №{{getField}}</p>
                 </div>

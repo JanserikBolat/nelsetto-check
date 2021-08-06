@@ -82,7 +82,7 @@ export default {
     },
     components: {DropDown},
     computed: {
-        ...mapState('booking', ['date', 'start_time', 'end_time', 'field_id', 'price']),
+        ...mapState('booking', ['date', 'start_time', 'end_time', 'field_id', 'price', 'bookingId']),
         isEdited(){
             return this.isDateEdited||this.isTimeEdited||this.isFieldEdited;
             
@@ -98,7 +98,7 @@ export default {
         },
         isChangeValid(){
             return this.orders.map(el=>el.bookings.filter(e=>{
-                return  this.isDateValid(e.date)&&this.isFieldValid(e.field_id)&&this.isRangeValid(e.start_time, e.end_time)
+                return  e.bookingId!==this.bookingId&&this.isDateValid(e.date)&&this.isFieldValid(e.field_id)&&this.isRangeValid(e.start_time, e.end_time)
                 }
             )).filter(e=>e.length!==0).length===0
         },
@@ -153,10 +153,14 @@ export default {
         },
         selected(option, id){
             if(id==='start'){
-                this.changedStartTime = option
-                if(this.timelines.indexOf(this.changedStartTime)>this.timelines.indexOf(this.changedEndTime)){
-                    this.changedEndTime = this.timelines[this.timelines.indexOf(this.changedStartTime)+1]
+                if(this.timelines.indexOf(option)<this.timelines.indexOf('00:00')&&this.timelines.indexOf(this.changedStartTime)>=this.timelines.indexOf('00:00')){
+                    this.changedDate = dayjs(this.changedDate).subtract(1,'day')
                 }
+                if(this.timelines.indexOf(option)>=this.timelines.indexOf('00:00')&&this.timelines.indexOf(this.changedStartTime)<this.timelines.indexOf('00:00')){
+                    this.changedDate = dayjs(this.changedDate).add(1,'day')
+                }
+                this.changedStartTime = option
+                this.changedEndTime = this.timelines[this.timelines.indexOf(this.changedStartTime)+1]
                 }
             else if(id==='end'){
                 this.changedEndTime = option
