@@ -21,6 +21,9 @@
                 </div>
             </template>
         </OrderInfo>
+        <div class="cancel__order" v-show="!isPaid">
+            <p class="cancelOrder__btn" @click="cancelOrder()">Отменить все</p>
+        </div>
         <div class="miniCards">
             <MiniOrderCard @addPayment="addPayment" v-for="booking,index in order.bookings" :bookingId="booking.bookingId" :key="index"/> 
         </div>
@@ -51,6 +54,9 @@ export default {
                 return this.order.orderId.substring(0,5)+'...';
             }
             return this.order.orderId
+        },
+        isPaid(){
+            return this.getAllPaid>0;
         }
   },
   methods: {
@@ -82,6 +88,13 @@ export default {
                 }
             }
             localStorage.setItem('orderInfo', JSON.stringify(this.orders));
+        },
+        cancelOrder(){
+            const newOrderInfo = this.orders.filter(el=>el.orderId!==this.order.orderId)
+            localStorage.setItem('orderInfo', JSON.stringify(newOrderInfo));
+            this.$store.dispatch('order/resetState');
+            this.$store.dispatch('booking/resetState')
+            this.$router.push('/orders')
         }
   }
 }
@@ -90,5 +103,20 @@ export default {
 .single__order{
     background: #E5E5E5;
     min-height: 100vh;
+}
+.cancel__order{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 16px;
+    p{
+        font-family: 'Roboto', sans-serif;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 12px;
+        line-height: 24px;
+        color: #0066FF;
+
+    }
 }
 </style>

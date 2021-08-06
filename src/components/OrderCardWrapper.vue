@@ -11,7 +11,7 @@ export default {
     props: ['status'],
     data(){
         return{
-            today: dayjs().format('DD-MM-YYY'),
+            today: dayjs().locale('ru'),
             filteredOrders: [],
             orders: JSON.parse(localStorage.getItem('orderInfo'))
         }
@@ -30,10 +30,10 @@ export default {
                     this.filteredOrders = this.getWaiting
                     break
                 case 'Архив':
+                    console.log(this.getArchive)
                     this.filteredOrders = this.getArchive
                     break
             }
-            console.log(this.filteredOrders)
         }
     },
     computed: {
@@ -44,7 +44,8 @@ export default {
             return this.orders.filter(e=>e.status==='В ожидании')
         },
         getArchive(){
-            return this.orders.filter(e=>dayjs(e.date).diff(dayjs(this.today), 'day')<0)
+            return this.orders.filter(e=>e.bookings.filter(el=>{
+                return dayjs(el.date).diff(this.today, 'day', true)<=1}).length>0)
         }
     }
 }

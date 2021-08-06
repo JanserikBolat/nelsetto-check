@@ -1,5 +1,5 @@
 <template>
-    <div class="timetable" :style="!isAvaiable?'pointer-events: none':''" :id="id">
+    <div class="timetable" :id="id">
         <div v-if="getLen||show" class="backdrop" @click="closePopup"></div>
         <div class="container" :class="getLen?'active':''">
             <div class="timetable__content" :class="getLen?'active':''">
@@ -27,9 +27,9 @@
                             v-for="time, index in timelines.slice(0,-1)" :key="index"
                             @makeOrder="makeOrder(index, field.id)"
                             @showInfoAboutOrder="showOrderInfo(index, field.id)"
-                            :class="{'selected':selectedCells.indexOf(`${field.id}_${index}`)>=0, 'blocked': !isAvaiable}"
+                            :class="{'selected':selectedCells.indexOf(`${field.id}_${index}`)>=0}"
                             :style="timelineStyles[field.id][index]"
-                            :value="!isEmpty?cellValues[field.id][index]:''"
+                            :value="cellValues[field.id][index]"
                         >
                         </Cell>
                     </div>
@@ -185,7 +185,6 @@ export default {
             }
         },
         getPrice: function(){
-            if(this.isAvaiable){
                 for(const f in this.infoAboutDay){
                     const priceKeys = Object.keys(this.infoAboutDay[f].price).map(e=>this.timelines.indexOf(e))
                     const prices = Object.keys(this.infoAboutDay[f].price).map(e=>this.infoAboutDay[f].price[e])
@@ -210,7 +209,7 @@ export default {
                     }
                     this.cellValues[this.facility.fields[f].id] = cell_prices
                 }
-            }
+
             
         },
         getOrders: function(){

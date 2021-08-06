@@ -45,7 +45,6 @@ export default {
     },
     beforeUpdate(){
         this.getDailyOrders();
-        console.log(this.day)
     },
     methods:{
         setInfo(dayOfWeek){
