@@ -1,5 +1,6 @@
 <template>
     <div class="single__order">
+        <div v-if="show" class="backdrop" @click.stop="show = false"></div>
         <ConfirmHeader>
             <template v-slot:main>
                 <p class="order__id">Заказ №{{getOrderId}}</p>
@@ -21,11 +22,40 @@
                 </div>
             </template>
         </OrderInfo>
-        <div class="cancel__order" v-show="!isPaid&&!IsArchive">
-            <p class="cancelOrder__btn" @click="cancelOrder()">Отменить все</p>
+        <div class="confirm__popup" v-show="show">
+            <div class="popup__inner">
+                <i class="fas fa-times" @click="show=false"></i>
+                <p class="confirm__text">Вы уверены, что хотите отменить все?</p>
+            <div class="confirm__buttons">
+                <div class="button__yes" @click="cancelOrder(true)">Да</div>
+                <div class="button__no" @click="cancelOrder(false)">Нет</div>
+            </div>
+            </div>
+        </div>
+        <div class="booking__status">
+            <div class="bookingStatus__inner">
+                <p>Брони</p>
+                <div class="statuses">
+                    <div class="upcoming" :class="{'active':active==='upcoming'}" @click="getBookings('upcoming')">
+                        Предстоящие
+                        <div class="line"></div>
+                    </div>
+                    <div class="finished" :class="{'active':active==='finished'}" @click="getBookings('finished')">
+                        Завершенные
+                        <div class="line"></div>
+                    </div>
+                    <div class="canceled" :class="{'active':active==='canceled'}" @click="getBookings('canceled')">
+                        Отмененные
+                        <div class="line"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="cancel__order" v-show="!isPaid&&!IsArchive&&active==='upcoming'">
+            <p class="cancelOrder__btn" @click="show=true">Отменить все</p>
         </div>
         <div class="miniCards">
-            <MiniOrderCard @addPayment="addPayment" v-for="booking,index in order.bookings" :bookingId="booking.bookingId" :key="index"/> 
+            <MiniOrderCard @addPayment="addPayment" v-for="booking,index in filteredBookings" :bookingId="booking.bookingId" :key="index"/> 
         </div>
         <payment-popup v-if="openPopup" @addPayment="addMoney" @closePayment="closePayment" />
     </div>
@@ -37,13 +67,21 @@ import OrderInfo from '../components/OrderInfo.vue'
 import MiniOrderCard from '../components/MiniOrderCard.vue'
 import PaymentPopup from '../components/PaymentPopup.vue'
 import ConfirmationCard from '../components/ConfirmationCard.vue'
+import * as dayjs from 'dayjs'
+import 'dayjs/locale/ru'
 export default {
     data(){
         return{
             openPopup: false,
             orders: JSON.parse(localStorage.getItem('orderInfo')),
-            bId: ''
+            bId: '',
+            show: false,
+            active: 'upcoming',
+            filteredBookings: []
         }
+    },
+    created(){
+        this.filteredBookings = this.getBookings(this.active)
     },
   components: { ConfirmHeader, OrderInfo, MiniOrderCard, PaymentPopup,ConfirmationCard},
   computed: {
@@ -63,6 +101,20 @@ export default {
         }
   },
   methods: {
+      getBookings(status){
+          this.active = status
+          switch(this.active){
+                case 'upcoming':
+                    this.filteredBookings = this.getOrder.bookings.filter(e=>dayjs(e.date).diff(dayjs(), 'day', true)>0) 
+                    break
+                case 'finished':
+                    this.filteredBookings = this.getOrder.bookings.filter(e=>e.status==='Завершено')
+                    break
+                case 'canceled':
+                    this.filteredBookings = this.getOrder.bookings.filter(e=>e.status==='Отменено')
+                    break
+          }
+      },
        addPayment(bId){
           this.bId = bId
           this.openPopup = true
@@ -92,12 +144,16 @@ export default {
             }
             localStorage.setItem('orderInfo', JSON.stringify(this.orders));
         },
-        cancelOrder(){
-            this.$store.dispatch('order/setStatus', 'Отменено')
-            this.updateLocalStorage(this.getOrder);
-            this.$store.dispatch('order/resetStore');
-            this.$store.dispatch('booking/resetStore');
-            this.$router.push('/orders')
+        cancelOrder(answer){
+            if(answer){
+                this.$store.dispatch('order/setStatus', 'Отменено')
+                this.getOrder.bookings.forEach(b => b.status = 'Отменено');
+                this.updateLocalStorage(this.getOrder);
+                this.$store.dispatch('order/resetState');
+                this.$store.dispatch('booking/resetState');
+                this.$router.push('/orders')
+            }
+            else this.show = false
         }
   }
 }
@@ -121,5 +177,91 @@ export default {
         color: #0066FF;
 
     }
+}
+.confirm__popup{
+    width: 50%;
+    height: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    z-index: 11;
+    padding: 20px;
+    .popup__inner{
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+        position: relative;
+        i{
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+        .confirm__buttons{
+            display: flex;
+            width: 100%;
+            .button__yes, .button__no{
+                width: 50%;
+                height: 30px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: white;
+            }
+            .button__no{
+                background: #50CB93;
+            }
+            .button__yes{
+                background: #BD1616;
+            }
+    }
+}
+}
+.booking__status{
+    height: 88px;
+    background: #fff;
+    margin: 16px 0px;
+    font-family: Roboto;
+    font-style: normal;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 14px;
+    padding: 16px 16px 0 16px;
+    p{
+        font-weight: 500;
+        font-size: 16px;
+        line-height: 24px;
+    }
+    .statuses{
+        height: 48px;
+        width: 100%;
+        display: flex;
+        .upcoming, .canceled, .finished{
+            width: 33.3%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .active>.line{
+                position: absolute;
+                bottom: 0;
+                width: 100%;
+                height: 2px;
+                background: #000;
+            }
+    }
+}
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10;
 }
 </style>

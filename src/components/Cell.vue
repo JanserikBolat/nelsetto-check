@@ -9,7 +9,7 @@
 export default {
     data(){
         return{
-            isReserved: typeof this.value!=='number'
+            isReserved: typeof this.value!=='number'&&this.value!==undefined
         }
     },
     props: ['field', 'index', 'value'],
@@ -41,6 +41,6 @@ export default {
         cursor: pointer;
     }
     .reserved{
-        background: grey;
+        background:  #A8A8A8!important;
     }
 </style>

@@ -35,7 +35,6 @@ export default {
             return s.replace(s[0],s[0].toUpperCase())
         },
         addPayment(){
-            console.log("AA")
             this.$emit('addPayment', this.bookingId)
         },
         goToBookingCard(){

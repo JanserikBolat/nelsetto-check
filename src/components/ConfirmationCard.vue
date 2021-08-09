@@ -24,7 +24,7 @@
     </div>    
 </template>
 <script>
-import {mapGetters} from 'vuex'
+import {mapGetters, mapState} from 'vuex'
 export default {
     props: ['fromNelsette', 'user'],
     data(){
@@ -50,11 +50,22 @@ export default {
         },
         sendOrder(){
             this.$store.dispatch('order/setStatus', 'Потверждено')
+            this.$store.dispatch('booking/setStatus', 'Потверждено');
+            for(let i = 0;i<this.getOrder.bookings.length;i++){
+                if(this.getOrder.bookings[i].bookingId===this.bookingId){
+                    const localBookings = this.getOrder.bookings;
+                    localBookings[i] = this.getBooking
+                    this.$store.dispatch('order/replaceBooking', localBookings);
+                    break;
+                }
+            }
             this.$emit('updateLocalStorage', this.getOrder)
         }
     },
     computed: {
-        ...mapGetters('order', ['getOrder'])
+        ...mapGetters('order', ['getOrder']),
+        ...mapGetters('booking', ['getBooking']),
+        ...mapState('booking', ['bookingId'])
     }
 }
 </script>

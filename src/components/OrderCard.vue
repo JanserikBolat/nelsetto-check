@@ -2,8 +2,16 @@
     <div class="order__card" @click="singleOrder()">
         <div class="orderCard__inner">
             <div class="card__little">
-                <p class="order__id">Заказ №{{order.orderId.substring(0,3)}},<p> 
-                <p class="booking__amount"> {{getBookingAmount}} бронь</p>
+                <div class="little__left">
+                    <p class="order__id">Заказ №{{order.orderId.substring(0,3)}},<p> 
+                    <p class="booking__amount"> {{getBookingAmount}} бронь</p>
+                </div>
+                <div class="little__status">
+                    <p v-show="order.status==='В ожидании'" class="status waiting">Ожидает потверждения</p>
+                    <p v-show="order.status==='Завершено'" class="status finished">Завершен</p>
+                    <p v-show="order.status==='Отменено'" class="status canceled">Отменен</p>
+                    <p v-show="order.status==='Потверждено'" class="status confirmed">Подтвержден</p>
+                </div>
             </div>
             <div class="card__content">
                 <div class="content__left">
@@ -12,20 +20,7 @@
                     <p class="field">Площадка №{{getField}}</p>
                 </div>
                 <div class="content__right">
-                    <div class="user__description">
-                        <div class="user__photo">
-                        <img :src="order.client.photo" alt="" v-if="order.client.photo">
-                            <i class="fas fa-user-circle" v-else-if="!order.client.photo"></i>
-                        </div>
-                        <div class="user__info">
-                            <div class="user__name">
-                            {{order.client.client_name}}
-                        </div>
-                        <div class="user__company" v-if="order.client.company!=''">
-                            {{order.client.company}}
-                        </div>
-                        </div>
-                    </div>
+                    <ClientCardMini :order="order"/>
                 </div>
             </div>
         </div>
@@ -34,8 +29,17 @@
 <script>
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
+import ClientCardMini from '../components/ClientCardMini.vue'
 export default {
     props: ['order'],
+    components:{
+        ClientCardMini
+    },
+    data(){
+        return{
+            show: false
+        }
+    },
     methods: {
         formatDate(date){
             return dayjs(date).locale('ru').format('DD MMMM')
@@ -44,6 +48,9 @@ export default {
             this.$store.dispatch('order/setOrder', this.order)
             this.$store.dispatch('booking/setBooking', this.order.bookings[0])
             this.$router.push({path:`/order/:${this.order.orderId}`})
+        },
+        closePopup(){
+            this.show = false;
         }
     },
     computed: {
@@ -70,8 +77,10 @@ export default {
 }
 .order__card{
     background: #fff;
-    padding: 8px 0px 16px 16px;
     margin-bottom: 16px;
+    .orderCard__inner{
+        padding: 8px 0px 16px 16px;
+    }
 }
 .card{
     &__content{
@@ -95,7 +104,12 @@ export default {
 }
 .card__little{
     display: flex;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    align-items: center;
+    .little__left{
+        display: flex;
+        margin-bottom: 8px;
+    }
     .order__id{
         font-weight: 700;
         font-size: 20px;
@@ -108,29 +122,30 @@ export default {
         line-height: 24px;
         letter-spacing: 0.15px;
     }
-}
-.user{
-    &__description{
-        display: flex;
-        align-items: center;
-        background: rgba(0, 0, 0, 0.04)
+    .status{
+        font-size: 10px;
+        padding-right: 10px;
     }
-    &__photo{
-        width: 20px;
-        height: 100%;
-        margin-right: 12px;
-        margin-left: 9.67px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        img, i{
-            width: 100%;
-            height: 20px;
-            border-radius: 50%;
-        }
+    .waiting{
+        color: #E3B205;
     }
-    &__info{
-        margin-right: 8px;
+    .canceled{
+        color: #FF4747;
+    }
+    .confirmed{
+        color: #2DCC70;
+    }
+    .finished{
+        color: #4A4A4A;
     }
 }
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+  }
 </style>

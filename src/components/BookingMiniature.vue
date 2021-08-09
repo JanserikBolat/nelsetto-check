@@ -17,14 +17,7 @@
                         </div>
                     </div>
                     <div class="content__right">
-                        <div class="client__info">
-                            <div class="client__photo">
-                                <img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fpbs.twimg.com%2Fprofile_images%2F537699494%2FBartSimpson.jpg&f=1&nofb=1" alt="">
-                            </div>
-                            <div class="client__name">
-                                {{info.client.client_name}}
-                            </div>  
-                        </div>
+                        <ClientCardMini :order="info"/>
                     </div>
                 </div>
             </div>
@@ -37,8 +30,12 @@
     </div>
 </template>
 <script>
+import ClientCardMini from './ClientCardMini.vue'
 export default {
     props: ['info'],
+    components: {
+        ClientCardMini
+    },
     computed: {
         fullPay: function(){
             return  this.getRemainMoney<=0;

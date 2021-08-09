@@ -8,6 +8,7 @@ import OrderView from '../pages/OrderView.vue'
 import SingleOrder from '../pages/SingleOrder.vue'
 import SingleBooking from '../pages/SingleBooking.vue'
 import EditBooking from '../pages/EditBooking.vue'
+import ClientView from '../pages/ClientView.vue'
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 const router =  new VueRouter({
@@ -66,6 +67,11 @@ const router =  new VueRouter({
             path: '/',
             redirect: `day/${dayjs().format('DD-MM-YYYY')}`,
         },
+        {
+            path: '/clients',
+            name: 'clients',
+            component: ClientView
+        }
     
     ]
 })

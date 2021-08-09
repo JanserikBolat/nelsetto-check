@@ -14,25 +14,16 @@
                 </div>
             </div>
             <div class="userInformation">
-                    <div class="user__photo">
-                        <img :src="order.client.photo" alt="" v-if="order.client.photo">
-                        <i class="fas fa-user-circle" v-else-if="!order.client.photo"></i>
-                    </div>
-                    <div class="user__info">
-                        <div class="user__name">
-                            {{order.client.client_name}}
-                        </div>
-                        <div class="user__company" v-if="order.client.company!=''">
-                            {{order.client.company}}
-                        </div>
-                    </div>
+                    <client-card-mini :order="order"/>
             </div>
         </div>
     </div>    
 </template>
 <script>
 import {mapState} from 'vuex'
+import ClientCardMini from './ClientCardMini.vue';
 export default {
+  components: { ClientCardMini },
     computed: {
         ...mapState('order', ['order']),
         getOrderId: function(){

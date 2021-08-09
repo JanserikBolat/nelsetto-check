@@ -1,5 +1,6 @@
 <template>
     <div class="confirmation__wrapper">
+        <div v-if="show" class="backdrop" @click.stop="show = false"></div>
         <confirm-header>
             <template v-slot:main>
                 <p class="order__id">Заказ №{{getOrderId}}</p>
@@ -21,6 +22,19 @@
                 </div>
             </template>
         </order-info>
+        <div class="confirm__popup" v-show="show">
+            <div class="popup__inner">
+                <i class="fas fa-times" @click="show=false"></i>
+                <p class="confirm__text">Вы уверены, что хотите отменить все?</p>
+            <div class="confirm__buttons">
+                <div class="button__yes" @click="cancelOrder(true)">Да</div>
+                <div class="button__no" @click="cancelOrder(false)">Нет</div>
+            </div>
+            </div>
+        </div>
+        <div class="cancel__order" v-show="!isPaid&&!IsArchive">
+            <p class="cancelOrder__btn" @click="show=true">Отменить все</p>
+        </div>
         <div class="miniCards">
             <MiniOrderCard @addPayment="addPayment" v-for="booking, index in getOrder.bookings" :key="index" :bookingId="booking.bookingId"/>
         </div>
@@ -39,7 +53,9 @@ export default {
         return{
             openPopup: false,
             orders: JSON.parse(localStorage.getItem('orderInfo')),
-            bId: ''
+            bId: '',
+            show: false,
+            answer: false
         }
     },
     components: {ConfirmHeader, ConfirmationCard, OrderInfo, MiniOrderCard, PaymentPopup},
@@ -64,6 +80,17 @@ export default {
             this.updateLocalStorage(this.getOrder);
             this.openPopup = false
         },
+        cancelOrder(answer){
+            if(answer){
+                this.$store.dispatch('order/setStatus', 'Отменено')
+                this.getOrder.bookings.forEach(b => b.status = 'Отменено');
+                this.updateLocalStorage(this.getOrder);
+                this.$store.dispatch('order/resetState');
+                this.$store.dispatch('booking/resetState');
+                this.$router.push('/orders')
+            }
+            else this.show = false
+        },
         updateLocalStorage(order){
             let oId = order.orderId;
             for(let i=0;i<this.orders.length;i++){
@@ -77,7 +104,7 @@ export default {
     },
     computed: {
     ...mapState('order', ['order']),
-    ...mapGetters('order', ['getAllPaid', 'getOrder', 'getOrder']),
+    ...mapGetters('order', ['getAllPaid', 'getOrder']),
         getBooking(){
             return this.getOrder.bookings.filter(e=>e.bookingId===this.bId)[0]
         },
@@ -86,6 +113,12 @@ export default {
                 return this.order.orderId.substring(0,5)+'...';
             }
             return this.order.orderId
+        },
+        isPaid(){
+            return this.getAllPaid>0;
+        },
+        IsArchive(){
+            return this.order.status==='Отменено'||this.order.status==='Завершено';
         }
     }
 }
@@ -95,5 +128,70 @@ export default {
     background: #E5E5E5;
     min-height: 100vh;
 }
+.cancel__order{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-top: 16px;
+    p{
+        font-family: 'Roboto', sans-serif;
+        font-style: normal;
+        font-weight: normal;
+        font-size: 12px;
+        line-height: 24px;
+        color: #0066FF;
 
+    }
+}
+.confirm__popup{
+    width: 50%;
+    height: 50%;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    z-index: 11;
+    padding: 20px;
+    .popup__inner{
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+        position: relative;
+        i{
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+        .confirm__buttons{
+            display: flex;
+            width: 100%;
+            .button__yes, .button__no{
+                width: 50%;
+                height: 30px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                color: white;
+            }
+            .button__no{
+                background: #50CB93;
+            }
+            .button__yes{
+                background: #BD1616;
+            }
+    }
+}
+}
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
 </style>

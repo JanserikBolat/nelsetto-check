@@ -27,7 +27,7 @@
                     <p class="discount__value">{{getAllDiscount}} ₸</p>
                 </div>
                 <div class="order__remainingPaylaod flex">
-                    <p class="remainingPayload__key">Остаток</p>
+                    <p class="remainingPayload__key">{{order.status==='Завершено'?'Долг':'Остаток'}}</p>
                     <p class="remaininPayload__value">{{getRemainMoney}} ₸</p>
                 </div>
             </div>

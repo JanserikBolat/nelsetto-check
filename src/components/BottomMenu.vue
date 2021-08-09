@@ -35,6 +35,10 @@ export default {
                     break;
                 case 'orders':
                     this.$router.push({path: '/orders'})
+                    break;
+                case 'clients':
+                    this.$router.push({path: '/clients'})
+                    break;
             }
         }
     }

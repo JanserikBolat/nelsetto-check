@@ -25,9 +25,9 @@
                     >
                         <Cell
                             v-for="time, index in timelines.slice(0,-1)" :key="index"
-                            @makeOrder="makeOrder(index, field.id)"
+                            @makeOrder="isAvaiable&&makeOrder(index, field.id)"
                             @showInfoAboutOrder="showOrderInfo(index, field.id)"
-                            :class="{'selected':selectedCells.indexOf(`${field.id}_${index}`)>=0}"
+                            :class="{'selected':selectedCells.indexOf(`${field.id}_${index}`)>=0, 'notAvaiable':!isAvaiable}"
                             :style="timelineStyles[field.id][index]"
                             :value="cellValues[field.id][index]"
                         >
@@ -124,14 +124,14 @@ export default {
         setOrderInfo(startIdx, f, endIdx = startIdx){
             let sum = 0
             for(let i = startIdx;i<endIdx+1;i++){
-                sum+=this.cellValues[f][i]
+                sum+=this.cellValues[f][i];
             }
             this.durationRange = endIdx-startIdx+1;
             this.$store.dispatch('booking/setBookingTime', {start_time: this.timelines[startIdx], end_time: this.timelines[endIdx+1]});
-            this.$store.dispatch('booking/setBookingField', f)
-            this.$store.dispatch('booking/setBookingDate', this.dateFormat(this.getDayIfMidnight, this.timelines[endIdx+1]))
+            this.$store.dispatch('booking/setBookingField', f);
+            this.$store.dispatch('booking/setBookingDate', this.dateFormat(this.getDayIfMidnight, this.timelines[endIdx+1]));
             this.$store.dispatch('booking/setBookingPrice', sum);
-            this.$store.dispatch('booking/setDuration', this.getDuration)
+            this.$store.dispatch('booking/setDuration', this.getDuration);
         },
         closePopup(){
             this.selectedCells = []
@@ -169,15 +169,15 @@ export default {
                 for(let j = 0;j<this.timelines.length-1;j++){
                     if(startIdx>=endIdx){
                         for(let s = endIdx;s<startIdx;s++){
-                            styleField[s] = 'pointer-events: none; background: black'
+                            styleField[s] = 'pointer-events: none; background: #2F5061'
                         }
                     }
                     else{
                         for(let s = 0;s<startIdx;s++){
-                            styleField[s] = 'pointer-events: none; background: black'
+                            styleField[s] = 'pointer-events: none; background: #2F5061'
                         }
                         for(let s = endIdx;s<this.timelines.length;s++){
-                            styleField[s] = 'pointer-events: none; background: black'
+                            styleField[s] = 'pointer-events: none; background: #2F5061'
                         }
                     }
                 }
@@ -371,8 +371,9 @@ export default {
 .today{
     color: red;
     }
-.blocked{
-    background: #000!important;
+.notAvaiable{
+    background: rgb(241, 206, 200);
+    color: white;
     }
 }
 </style>

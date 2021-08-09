@@ -30,7 +30,7 @@
 </template>
 <script>
 import {mapState, mapGetters} from 'vuex'
- import { uuid } from 'vue-uuid'
+import { uuid } from 'vue-uuid'
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
 export default({
@@ -50,10 +50,10 @@ export default({
                this.$store.dispatch('booking/setBookingId', 1);
                this.$store.dispatch('order/setDate', {start_date: this.date, end_date: this.date})
                this.$store.dispatch('order/addBooking', this.getBooking)
-               }
+            }
             this.$store.dispatch('order/setType', this.orderType)
             this.$store.dispatch('order/setId', this.getUniqueId)
-           this.$router.push({name: 'order'})
+            this.$router.push({name: 'order'})
        }
    },
    computed:{
@@ -76,7 +76,6 @@ export default({
     bottom: 0
     left: 0
     right: 0
-    height: 120px
     background: #fff
     box-shadow: 0px -4px 8px rgba(0, 0, 0, 0.04), 0px 0px 2px rgba(0, 0, 0, 0.06), 0px 0px 1px rgba(0, 0, 0, 0.04)
     z-index: 16

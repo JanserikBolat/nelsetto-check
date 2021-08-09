@@ -1,4 +1,4 @@
-import { SET_BOOKINGID, SET_BOOKINGDISCOUNT,ADD_BOOKINGDISCOUNT, SET_BOOKING, SET_BOOKINGDATE, SET_BOOKINGTIME, SET_DURATION, SET_BOOKINGFIELD, SET_BOOKINGPAID, SET_BOOKINGPRICE} from "../mutation-types";
+import { SET_BOOKINGID, SET_BOOKINGDISCOUNT,ADD_BOOKINGDISCOUNT, SET_BOOKING, SET_BOOKINGDATE, SET_BOOKINGTIME, SET_DURATION, SET_BOOKINGFIELD, SET_BOOKINGPAID, SET_BOOKINGPRICE, SET_STATUS} from "../mutation-types";
 
 const getDefaultState = ()=>{
     return{
@@ -10,7 +10,8 @@ const getDefaultState = ()=>{
         paid: 0,
         price: 0,
         start_time: '',
-        duration: ''
+        duration: '',
+        status: 'В ожидании',
     }
 }
 const bookingModule = {
@@ -55,6 +56,10 @@ const bookingModule = {
             state.price = booking.price
             state.start_time = booking.start_time
             state.duration = booking.duration
+            state.status = booking.status
+        },
+        [SET_STATUS](state, status){
+            state.status = status
         },
         resetState(state){
             Object.assign(state, getDefaultState())
@@ -99,6 +104,9 @@ const bookingModule = {
         },
         setBooking({commit}, booking){
             commit(SET_BOOKING, booking)
+        },
+        setStatus({commit}, status){
+            commit(SET_STATUS, status)
         },
         resetState({commit}){
             commit('resetState')

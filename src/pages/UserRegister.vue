@@ -37,8 +37,6 @@ export default {
     },
     addUser(){
       this.users = [...this.users, this.getClient]
-      console.log(this.getClient)
-      console.log(this.users)
       localStorage.setItem('users',JSON.stringify(this.users))
     } 
   },
