@@ -54,8 +54,13 @@
         <div class="cancel__order" v-show="!isPaid&&!IsArchive&&active==='upcoming'">
             <p class="cancelOrder__btn" @click="show=true">Отменить все</p>
         </div>
-        <div class="miniCards">
+        <div class="miniCards" v-show="filteredBookings.length>0">
             <MiniOrderCard @addPayment="addPayment" v-for="booking,index in filteredBookings" :bookingId="booking.bookingId" :key="index"/> 
+        </div>
+        <div class="noBookings" v-show="filteredBookings.length===0">
+            <p v-show="active==='upcoming'">Нет предстоящих заказов</p>
+            <p v-show="active==='finished'">Нет завершенных заказов</p>
+            <p v-show="active==='canceled'">Нет отмененных заказов</p>
         </div>
         <payment-popup v-if="openPopup" @addPayment="addMoney" @closePayment="closePayment" />
     </div>
@@ -81,7 +86,7 @@ export default {
         }
     },
     created(){
-        this.filteredBookings = this.getBookings(this.active)
+        this.getBookings(this.active)
     },
   components: { ConfirmHeader, OrderInfo, MiniOrderCard, PaymentPopup,ConfirmationCard},
   computed: {
@@ -105,7 +110,7 @@ export default {
           this.active = status
           switch(this.active){
                 case 'upcoming':
-                    this.filteredBookings = this.getOrder.bookings.filter(e=>dayjs(e.date).diff(dayjs(), 'day', true)>0) 
+                    this.filteredBookings = this.getOrder.bookings.filter(e=>dayjs(e.date).diff(dayjs(), 'day', true)>0&&e.status!=='Отменено') 
                     break
                 case 'finished':
                     this.filteredBookings = this.getOrder.bookings.filter(e=>e.status==='Завершено')
@@ -253,7 +258,18 @@ export default {
                 height: 2px;
                 background: #000;
             }
+            .active{
+                font-weight: 500;
+            }
     }
+}
+.miniCards, .noBookings{
+    padding: 16px 16px 8px 16px;
+}
+.noBookings{
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 .backdrop {
   position: fixed;

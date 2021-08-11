@@ -68,7 +68,6 @@ export default {
     line-height: 20px;
 }
 .mini__card{
-    margin: 16px 16px 8px 16px;
     background: #fff;
     padding: 8px 8px 16px 8px;
 }

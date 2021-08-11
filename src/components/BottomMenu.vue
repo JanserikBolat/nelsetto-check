@@ -2,19 +2,19 @@
     <div class="bottom__menu">
         <div class="menu__option calendar"  @click="makeActive('calendar')">
             <i class="far fa-calendar" :class="activeTab==='calendar'?'active':''"></i>
-            <p>Календарь</p>
+            <p :class="activeTab==='calendar'?'active':''">Календарь</p>
         </div>
         <div class="menu__option orders"  @click="makeActive('orders')">
             <i class="fas fa-plus-circle" :class="activeTab==='orders'?'active':''"></i>
-            <p>Заказы</p>
+            <p :class="activeTab==='orders'?'active':''">Заказы</p>
         </div>
         <div class="menu__option clients" @click="makeActive('clients')">
             <i class="fas fa-user" :class="activeTab==='clients'?'active':''"></i>
-            <p>Клиенты</p>
+            <p :class="activeTab==='clients'?'active':''">Клиенты</p>
         </div>
         <div class="menu__option menu" @click="makeActive('menu')">
             <i class="fas fa-bars" :class="activeTab==='menu'?'active':''"></i>
-            <p>Меню</p>
+            <p :class="activeTab==='menu'?'active':''">Меню</p>
         </div>
     </div>    
 </template>
@@ -47,6 +47,8 @@ export default {
 <style lang="scss" scoped>
 .bottom__menu{
     display: flex;
+    justify-content: space-evenly;
+    align-items: center;
     position:fixed;
     bottom: 0;
     width: 100%;
@@ -54,11 +56,11 @@ export default {
     background: #fff;
 }
 .menu__option{
-    width: 25%;
     display: flex;
     flex-direction: column;
-    justify-content: space-evenly;
+    justify-content: space-between;
     align-items: center;
+    cursor: pointer;
     p{
         font-family: 'Roboto', sans-serif;
         font-style: normal;
