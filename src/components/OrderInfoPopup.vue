@@ -3,21 +3,15 @@
         <div class="orderInfo__inner">
             <div class="orderInfo__top">
                 <div class="orderInfo__left">
-                    <div class="order__number">
-                        Заказ №{{info.orderId}}
+                    <div class="order__number" @click.stop = goToOrder>
+                        Заказ №{{info.order_id}}
                     </div>
                     <div class="order__remain">
                         Бронь, {{getDate}}
                     </div>
                 </div>
                 <div class="orderInfo__right">
-                    <div class="clientInfo">
-                        <div class="client__photo">
-
-                        </div>
-                        <div class="client__name">
-                        </div>
-                    </div>
+                    <client-card-mini :client="info.client"/>
                 </div>
             </div>
             <div class="orderInfo__content">
@@ -26,7 +20,7 @@
                         Осталось броней
                     </div>
                     <div class="orderInfo__value">
-                        {{getRemainBookings}}
+                        {{info.other_reservations}}
                     </div>
                 </div>
                 <div class="orderInfo__details margin-bottom">
@@ -34,7 +28,7 @@
                         Детали 
                     </div>
                     <div class="orderInfo__value">
-                        {{info.bookingInfo.start_time}}-{{info.bookingInfo.end_time}}, Площадка {{info.bookingInfo.field_id}} 
+                        {{info.start_time.substring(0,5)}}-{{info.end_time.substring(0,5)}}, Площадка {{info.playfield_id}} 
                     </div>
                 </div>
                 <div class="orderInfo__cost margin-bottom">
@@ -42,7 +36,7 @@
                         Общая сумма
                     </div>
                     <div class="orderInfo__value">
-                        {{info.bookingInfo.price}}
+                        {{info.price}}
                     </div>
                 </div>
                 <div class="orderInfo__payType margin-bottom">
@@ -58,7 +52,7 @@
                         Оплачено
                     </div>
                     <div class="orderInfo__value">
-                        {{info.bookingInfo.paid}}
+                        {{info.paid}}
                     </div>
                 </div>
                 <div class="orderInfo_discount margin-bottom">
@@ -66,7 +60,7 @@
                         Скидка
                     </div>
                     <div class="orderInfo__value">
-                        {{info.bookingInfo.booking_discount}}
+                        {{info.discount}}
                     </div>
                 </div>
                 <div class="orderInfo__payRemain margin-bottom">
@@ -74,7 +68,7 @@
                         Остаток
                     </div>
                     <div class="orderInfo__value">
-                        {{getRemainMoney}}
+                        {{info.debt}}
                     </div>
                 </div>
                 <div class="orderInfo__button" @click="goToBooking()">
@@ -87,11 +81,13 @@
 <script>
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
+import ClientCardMini from './ClientCardMini.vue'
 export default {
+  components: { ClientCardMini },
     props: ['info'],
     computed: {
         getDate: function(){
-            return dayjs(this.info['bookingInfo'].date).locale('ru').format('DD MMMM')
+            return dayjs(this.info.date).locale('ru').format('DD MMMM')
         },
         getRemainMoney: function(){
             return this.info.bookingInfo.price-(this.info.bookingInfo.paid+this.info.bookingInfo.booking_discount)
@@ -110,10 +106,14 @@ export default {
     },
     methods: {
         goToBooking(){
-            console.log(this.info)
             this.$store.dispatch('order/setOrder', this.info)
-            this.$store.dispatch('booking/setBooking', this.info.bookingInfo)
-            this.$router.push({path:`/order/:${this.info.orderId}/booking/:${this.info.bookingInfo.bookingId}`})
+            this.$store.dispatch('booking/setBooking', this.info)
+            this.$router.push({name: 'singleBooking', params: {id: this.info.order_id, bookingid: this.info.id}});
+        },
+        goToOrder(){
+            this.$store.dispatch('order/setOrder', this.info)
+            this.$store.dispatch('booking/setBooking', this.info)
+            this.$router.push({name: 'singleOrder', params: {id: this.info.order_id}});
         }
     }
 }
@@ -135,7 +135,7 @@ export default {
         right: 0;
         background: #fff;
         box-shadow: 0px -4px 8px rgba(0, 0, 0, 0.04), 0px 0px 2px rgba(0, 0, 0, 0.06), 0px 0px 1px rgba(0, 0, 0, 0.04);
-        z-index: 16;
+        z-index: 35;
     }
     &__inner{
         margin: 10px 16px 22px;
@@ -144,8 +144,11 @@ export default {
         display: flex;
         justify-content: space-between;
     }
-    &__left, &__right{
+    &__left{
         width: 50%;
+    }
+    &__right{
+        width: 133px;
     }
     &__button{
         width: 100%;
@@ -155,11 +158,13 @@ export default {
         display: flex;
         justify-content: center;
         align-items: center;
+        cursor: pointer;
     }
 }
 .order__number{
         font-weight: 700;
         text-decoration: underline;
+        cursor: pointer;
     }
 .margin-bottom{
         margin-bottom: 16px;

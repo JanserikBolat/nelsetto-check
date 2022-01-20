@@ -7,9 +7,10 @@
                 <div class="timetable__fields">
                     <div class="timetable__field empty"></div>
                     <div class="timetable__field"
-                        v-for="field in facility.fields" :key="field.id"
+                        v-for="field, index in facilityPlayfields" :key="field.id"
+                        :style="`width:${isPhone?'37px':'100px'}`"
                     >
-                        {{field.id}}
+                        {{isPhone?`№ ${index+1}`:field.pf_name}}
                     </div>
                 </div>
                 <div class="timetable__time__cells">
@@ -21,15 +22,16 @@
                         </div>
                     </div>
                     <div class="timetable__cells"
-                        v-for="field in facility.fields" :key="field.id"
+                        v-for="field in facilityPlayfields" :key="field.id"
                     >
                         <Cell
-                            v-for="time, index in timelines.slice(0,-1)" :key="index"
+                            v-for="(time, index) in timelines.slice(0,-1)" :key="index"
                             @makeOrder="isAvaiable&&makeOrder(index, field.id)"
-                            @showInfoAboutOrder="showOrderInfo(index, field.id)"
+                            @showInfoAboutOrder="showOrderInfo"
                             :class="{'selected':selectedCells.indexOf(`${field.id}_${index}`)>=0, 'notAvaiable':!isAvaiable}"
                             :style="timelineStyles[field.id][index]"
                             :value="cellValues[field.id][index]"
+                            :nextBooking="cellValues[field.id][index+1]"
                         >
                         </Cell>
                     </div>
@@ -46,9 +48,10 @@ import Cell from './Cell.vue'
 import OrderInfoPopup  from './OrderInfoPopup.vue'
 import * as dayjs from 'dayjs'
 import 'dayjs/locale/ru'
+import { mapState } from 'vuex'
 export default {
     components: {OrderPopup, Cell, OrderInfoPopup},
-    props: ['id', 'date', 'infoAboutDay', 'buttonNeeded'],
+    props: ['id', 'date', 'infoAboutDay', 'buttonNeeded', 'bookings'],
     data(){
         return{
             timelines: [],
@@ -60,20 +63,35 @@ export default {
             timelineStyles: {},
             cellValues: {},
             leftScroll: 0,
-            facility: JSON.parse(localStorage.getItem('facility')),
             show: false,
-            orders: JSON.parse(localStorage.getItem('orderInfo')),
-            infoToShow: {}
+            orders: [],
+            infoToShow: {},
+            start: false
         }
     },
-    created(){
+    watch: {
+        bookings: function(){
+            this.disableTime();
+            this.getPrice();
+            this.getOrders();
+            this.moveRedLine();
+            this.$emit('move', this.leftScroll);
+        },
+        'facility.id': function(){
+            this.disableTime();
+            this.getPrice();
+            this.getOrders();
+            this.moveRedLine();
+            this.$emit('move', this.leftScroll);
+        }
+    },
+    async mounted(){
         this.generateTime();
         this.disableTime();
         this.getPrice();
         this.getOrders();
-        if(this.isToday){
-            this.moveRedLine();
-        }
+        this.moveRedLine();
+        this.$emit('move', this.leftScroll);
     },
     methods: {
         generateTime(){
@@ -105,11 +123,19 @@ export default {
                         //Использую мин и макс для того чтобы админ мог выбирать в двух направлениях
                         let i = Math.min(this.firstSelected.cellId, index)
                         let end = Math.max(this.firstSelected.cellId, index)
-                        this.setOrderInfo(i,fieldId, end)
-                        for(;i<=end;i++){
-                            this.selectedCells.push(`${fieldId}_${i}`)
+                        if(!this.cellValues[fieldId].slice(i, end+1).some(e=>e.isReserved)){
+                            this.setOrderInfo(i,fieldId, end)
+                            for(;i<=end;i++){
+                                this.selectedCells.push(`${fieldId}_${i}`)
+                            }
+                            this.firstSelected = null
                         }
-                        this.firstSelected = null
+                        else{
+                            this.setOrderInfo(index, fieldId)
+                            this.firstSelected = {fieldId, cellId: index}
+                            this.selectedCells = []
+                            this.selectedCells.push(`${fieldId}_${index}`)
+                        }
                     }
                 }
                 else{
@@ -124,14 +150,16 @@ export default {
         setOrderInfo(startIdx, f, endIdx = startIdx){
             let sum = 0
             for(let i = startIdx;i<endIdx+1;i++){
-                sum+=this.cellValues[f][i];
+                sum+=parseInt(this.cellValues[f][i].value);
             }
             this.durationRange = endIdx-startIdx+1;
+            let pf_name  = this.facilityPlayfields.find(e=>e.id===f).pf_name;
             this.$store.dispatch('booking/setBookingTime', {start_time: this.timelines[startIdx], end_time: this.timelines[endIdx+1]});
             this.$store.dispatch('booking/setBookingField', f);
-            this.$store.dispatch('booking/setBookingDate', this.dateFormat(this.getDayIfMidnight, this.timelines[endIdx+1]));
+            this.$store.dispatch('booking/setPlayfieldName', pf_name)
+            this.$store.dispatch('booking/setBookingDate', this.dateFormat(this.getDayIfMidnight(startIdx), this.timelines[endIdx+1]));
             this.$store.dispatch('booking/setBookingPrice', sum);
-            this.$store.dispatch('booking/setDuration', this.getDuration);
+            this.$store.dispatch('booking/setDuration', this.duration*this.durationRange*60);
         },
         closePopup(){
             this.selectedCells = []
@@ -143,15 +171,10 @@ export default {
         moveRedLine(){
             const CELL_WIDTH = 49;
             const MARGIN_BETWEEN_CELLS = 1 
-            const MARGIN_LEFT = 62
+            const MARGIN_LEFT = this.isPhone?67:130;
+        
             let now = `${dayjs().format('HH')}:${dayjs().minute()<30?'00':'30'}` 
-            let redlineIdx;
-            for(let i=0;i<this.timelines.length;i++){
-                if(now===this.timelines[i]){
-                    redlineIdx = i
-                    break
-                }
-            }
+            let redlineIdx = this.timelines.findIndex(e=>e===now);
             const left = MARGIN_LEFT+Math.floor(CELL_WIDTH/2)+(CELL_WIDTH+MARGIN_BETWEEN_CELLS)*redlineIdx
             this.leftScroll = left
             return `left:${left}px`
@@ -161,11 +184,11 @@ export default {
             document.getElementById(this.id).scrollIntoView({behavior:'smooth', block: 'center'});
         },
         disableTime(){
-            for(const f in this.facility.fields){
+            this.timelineStyles = [];
+            this.facilityPlayfields.forEach(e=>{
                 let styleField = []
-                let infoForField = this.infoAboutDay[f]
-                let startIdx = this.timelines.indexOf(infoForField.start_time)<0?0:this.timelines.indexOf(infoForField.start_time)
-                let endIdx = this.timelines.indexOf(infoForField.end_time)<0?this.timelines.length:this.timelines.indexOf(infoForField.end_time)
+                let startIdx = this.timelines.indexOf(this.infoAboutDay[e.id].start_time.substring(0,5));
+                let endIdx = this.timelines.indexOf(this.infoAboutDay[e.id].end_time.substring(0,5));
                 for(let j = 0;j<this.timelines.length-1;j++){
                     if(startIdx>=endIdx){
                         for(let s = endIdx;s<startIdx;s++){
@@ -180,82 +203,47 @@ export default {
                             styleField[s] = 'pointer-events: none; background: #2F5061'
                         }
                     }
-                }
-                this.timelineStyles[this.facility.fields[f].id]=styleField
+                this.timelineStyles[e.id]= styleField;
             }
+            })
         },
         getPrice: function(){
                 for(const f in this.infoAboutDay){
-                    const priceKeys = Object.keys(this.infoAboutDay[f].price).map(e=>this.timelines.indexOf(e))
-                    const prices = Object.keys(this.infoAboutDay[f].price).map(e=>this.infoAboutDay[f].price[e])
-                    const cell_prices = []
-                    for(let i = 0;i<priceKeys.length-1;i++){
-                        for(let j = priceKeys[i];j<priceKeys[i+1];j++){
-                            cell_prices[j] = prices[i]
-                        }
-                    }
-                    if(priceKeys[priceKeys.length-1]>this.timelines.indexOf(this.infoAboutDay[f].end_time)){
-                        for(let i = 0;i<this.timelines.indexOf(this.infoAboutDay[f].end_time);i++){
-                            cell_prices[i] = prices[prices.length-1]
-                        }
-                        for(let i = priceKeys[priceKeys.length-1];i<this.timelines.length-1;i++){
-                            cell_prices[i] = prices[prices.length-1]
-                        }
-                    }
-                    else{
-                        for(let i = priceKeys[priceKeys.length-1];i<this.timelines.indexOf(this.infoAboutDay[f].end_time);i++){
-                            cell_prices[i] = prices[prices.length-1]
-                        }
-                    }
-                    this.cellValues[this.facility.fields[f].id] = cell_prices
+                    const priceKeys = Object.keys(this.infoAboutDay[f].prices);
+                    let cell_prices = new Array(this.timelines.length).fill({value: '', isReserved: false})
+                    priceKeys.forEach(key=>
+                        cell_prices[this.timelines.indexOf(key)] = {value: this.infoAboutDay[f].prices[key], isReserved: false}
+                    )
+                    this.cellValues[f] = cell_prices
                 }
-
-            
-        },
-        getOrders: function(){
-            for(const order in this.orders){
-                for(const booking in this.orders[order]['bookings']){
-                    let day = this.date;
-                    if(this.timelines.indexOf(this.orders[order]['bookings'][booking]['start_time'])>=this.timelines.indexOf('00:00')){
-                        day = day.add(1, 'day')
-                    }
-                    if(dayjs(this.orders[order]['bookings'][booking]['date']).format('DD-MM-YYYY')===day.format('DD-MM-YYYY')){
-                        if(this.orders[order].status!=='Отменено'){
-                            let e_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['end_time'])
-                            let s_idx = this.timelines.indexOf(this.orders[order]['bookings'][booking]['start_time'])
-
-                            let f_idx = this.orders[order]['bookings'][booking]['field_id']
-                            for(let i = s_idx;i<e_idx;i++){
-                                this.cellValues[f_idx][i] = this.orders[order].client.client_name
-                            }
-                        }
-                    }
+        },  
+        getOrders(){
+                this.bookings.forEach(e=>{
+                let e_idx = this.timelines.indexOf(e.end_time.substring(0,5));
+                let s_idx = this.timelines.indexOf(e.start_time.substring(0,5));
+                const f_idx = e.playfield.id;
+                this.orders.push(e.order_id);
+                for(let i = s_idx;i<e_idx;i++){
+                    this.cellValues[f_idx][i] = {value: e.client.firstname, isReserved: true, booking_id: e.id, amount: e_idx-s_idx, color: this.orders.indexOf(e.order_id)%2}
                 }
-            }
+                this.cellValues = {...this.cellValues}
+            });
         },
-        showOrderInfo: function(idx, f_idx){
+        async showOrderInfo(b_id){
             this.selectedCells = []
-            for(const order in this.orders){
-                for(const booking in this.orders[order]['bookings']){
-                    let bkng = this.orders[order]['bookings'][booking]
-                    if(dayjs(bkng.date).format('DD-MM-YYYY')===this.date.format('DD-MM-YYYY')){
-                        if(bkng.field_id===f_idx){
-                            let s_idx = this.timelines.indexOf(bkng.start_time)
-                            let e_idx = this.timelines.indexOf(bkng.end_time)
-                            if(idx>=s_idx&&idx<e_idx){
-                                this.infoToShow = {...this.orders[order], "bookingInfo":bkng}
-                            }
-                        }
-                    }
-                }
-            }
+            this.infoToShow = this.bookings.find(e=>e.id===b_id)
             this.show = true
         },
         dateFormat(date, h){
-            return dayjs(date).hour(parseInt(h.split(':')[0])).minute(parseInt(h.split(':')[1])).second(0)
-        }
+            return dayjs(date).hour(h.split(':')[0]).minute(h.split(':')[1]).second(0).millisecond(0)
+        },
+        getDayIfMidnight: function(s_idx){
+            const MIDNIGHT = '00:00';
+            return s_idx>=this.timelines.indexOf(MIDNIGHT)?this.date.add(1, 'day'):this.date;
+        },
     },
     computed:{
+         ...mapState('facility', ['facility']),
         getLen: function(){
             return this.selectedCells.length
         },
@@ -266,24 +254,18 @@ export default {
             return Object.keys(this.cellValues).length===0
         },
         isToday: function(){
-            return this.date.format('DD MMMM, dd')===this.today.format('DD MMMM, dd')
+            return this.date.format('DD-MM-YYYY')===this.today.format('DD-MM-YYYY')
         },
-        getDayIfMidnight: function(){
-            let b = this.$store.state.booking;
-            const MIDNIGHT = '00:00';
-            if(this.timelines.indexOf(b.start_time)>=this.timelines.indexOf(MIDNIGHT)){
-                return this.date.add(1, 'day');
-            }
-            else{
-                return this.date;
-            }
+        facilityPlayfields(){
+            return this.facility.playfields?.filter(e=>{
+                if(e.periods_data!==null){
+                   return !e.periods_data[this.date.day()].dayoff
+                }})??[];
         },
-        getDuration: function(){
-           const totalMinutes = this.duration*this.durationRange
-           const hours = Math.floor(totalMinutes/60)
-           const minutes = totalMinutes%60
-           return `${hours} ч ${minutes} мин`
-       }
+        isPhone: function(){
+             let width = (window.innerWidth > 0) ? window.innerWidth : screen.width;
+             return width<768;
+        }
     }
 }
 </script>
@@ -294,13 +276,10 @@ export default {
 }
 .timetable{
     width: max-content;
-    height: 151px;
     background-color: #DEDEDE;
-    position: relative;
     &__content{
         position: relative;
         display: flex;
-        height: 151px;
         .redLine{
             position: absolute;
             width: 1px;
@@ -309,17 +288,19 @@ export default {
             }
     }
         &__fields{
-            width: 37px;
             height: 100%;
             left: 0;
             background: #DEDEDE;
             position: sticky;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            line-height: 20px;
+            padding-left: 5px;
             }
             &__field{
                 display: flex;
-                justify-content: center;
+                justify-content: flex-start;
                 align-items: center;
-                width: 37px;
                 height: 30px;
                 margin-bottom: 10px;
                 }
@@ -359,10 +340,10 @@ export default {
   bottom: 0;
   right: 0;
   background-color: rgba(0, 0, 0, 0.5);
-  z-index: 10;
+  z-index: 15;
   }
 .active{
-    z-index: 11;
+    z-index: 15;
     background: inherit;
 }
 .timetable__dateline.active{
@@ -374,6 +355,7 @@ export default {
 .notAvaiable{
     background: rgb(241, 206, 200);
     color: white;
+    pointer-events: none;
     }
 }
 </style>

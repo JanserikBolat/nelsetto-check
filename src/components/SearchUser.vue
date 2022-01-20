@@ -7,6 +7,7 @@
                         <p class="tel__code" :class="{'disabledPhone':disabled}">+7</p>
                         <input v-model="search" type="tel" id = "phone" name="phone"  title="Ваш телефонный номер"
                         maxlength="10"
+                        v-mask="'(###)-### -##-##'"
                         :disabled = disabled
                         :class="$v.search.$error&&!disabled?'invalid':''"
                         >

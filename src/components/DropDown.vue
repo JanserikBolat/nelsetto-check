@@ -1,128 +1,108 @@
 <template>
-    <div class="dropdown">
-        <div class="select-box">
-        <div class="options-container" :class="active?'active':''">
-          <div class="option" v-for="el, index in options" :key="index" @click="handleClick(el)">
-            <input
-              type="radio"
-              class="radio"
-              :id="`${id}-${index}`"
-            />
-            <label :for="index" :ref="index">{{id==='date'?getDateFormat(el): el}}</label>
-          </div>
-        </div>
-
-        <div class="selected" :ref="`${id}-selected`" @click="active=!active">
-          {{id==='date'?getDateFormat(initialValue): initialValue}}
-        </div>
+  <div class="dropdown">
+    <div class="backdrop" v-show="toggleDropdown" @click.stop="toggleDropdown = false"></div>
+    <div class="chosen" @click.stop="toggleDropdown=!toggleDropdown" :class="{'fixed':fixed}">
+      <div class="value">
+        <slot name="image"/>
+        <span>
+          <label>{{selectedText}}</label>
+        </span>
       </div>
+      <i class="fa fa-caret-down icon"></i>
     </div>
+    <div class="dropdown__options" :class="{'show':toggleDropdown}">
+      <div class="dropdown__option" v-for="value, index in options" :key="index" :value="value.value" @click.stop="setSelect(value)">{{value.text}}</div>
+    </div>
+  </div>
 </template>
 <script>
-import * as dayjs from 'dayjs'
-import 'dayjs/locale/ru'
 export default {
-    props: ['options', 'id', 'initialValue'],
-    data(){
-        return{
-            option:'',
-            active: false
-        }
-    },
-    methods: {
-        handleClick(el){
-            this.$refs[`${this.id}-selected`].innerHTML = this.id==='date'?this.getDateFormat(el): el;
-            this.active = false;
-            this.$emit('selected', el, this.id);
-        },
-        getDateFormat(el){
-            return dayjs(el).locale('ru').format('DD MMMM, YYYY')
-        }
+  props: ['options', 'initialValue', 'id', 'fixed'],
+  data(){
+    return{
+      selected: '',
+      selectedText: 'Выберите',
+      toggleDropdown: false
     }
+  },
+  created(){
+      this.selected = this.initialValue.value;
+      this.selectedText = this.initialValue.text;
+  },
+   watch: {
+    'initialValue.value': function (){
+        this.selected = this.initialValue.value;
+        this.selectedText = this.initialValue.text;
+    }
+  },
+  methods: {
+    setSelect(e){
+      this.selected = e.value;
+      this.selectedText = e.text;
+      this.toggleDropdown = false;
+      this.$emit('selected', {value: this.selected, text: this.selectedText}, this.id);
+    }
+  }
 }
 </script>
 <style lang="scss" scoped>
-.select-box {
-  display: flex;
-  width: 100%;
-  flex-direction: column;
+:not(i){
+    font-family: 'Roboto', sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    font-size: 14px;
+    line-height: 20px
 }
-
-.select-box .options-container {
-  background: #2f3640;
-  color: #f5f6fa;
-  max-height: 0;
+.dropdown{
   width: 100%;
-  opacity: 0;
-  transition: all 0.4s;
-  border-radius: 8px;
-  overflow: hidden;
-
-  order: 1;
-}
-
-.selected {
-  background: #2f3640;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  color: #f5f6fa;
   position: relative;
+  max-height: 30px;
+  .backdrop{
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom:0;
+    right:0;
+    background: transparent;
+  }
+  .chosen{
+    padding: 5px 8px;
+    background: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #9D9D9D;
+    z-index: 10;
+    overflow: hidden;
+    .value{
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    span{
+      margin-left: 4px;
+    }
 
-  order: 0;
-}
-
-.selected::after {
-  content: "";
-  background: url("../assets/arrow-down.svg");
-  background-size: contain;
-  background-repeat: no-repeat;
-
-  position: absolute;
-  height: 100%;
-  width: 32px;
-  right: 10px;
-  top: 5px;
-
-  transition: all 0.4s;
-}
-
-.select-box .options-container.active {
-  max-height: 240px;
-  opacity: 1;
-  overflow-y: scroll;
-}
-
-.select-box .options-container.active + .selected::after {
-  transform: rotateX(180deg);
-  top: -6px;
-}
-
-.select-box .options-container::-webkit-scrollbar {
-  width: 8px;
-  background: #0d141f;
-  border-radius: 0 8px 8px 0;
-}
-
-.select-box .options-container::-webkit-scrollbar-thumb {
-  background: #525861;
-  border-radius: 0 8px 8px 0;
-}
-
-.select-box .option,
-.selected {
-  padding: 12px 24px;
-  cursor: pointer;
-}
-
-.select-box .option:hover {
-  background: #414b57;
-}
-
-.select-box label {
-  cursor: pointer;
-}
-
-.select-box .option .radio {
-  display: none;
+  }
+  .fixed{
+    pointer-events: none;
+    background: #9D9D9D;
+  }
+  &__options{
+    position: absolute;
+    background: #fff;
+    width: 100%;
+    max-height: 150px;
+    overflow-y: scroll;
+    border: 1px solid #9D9D9D;
+    display: none;
+    z-index: 15;
+  }
+  .show{
+      display: block;
+    } 
+  &__option{
+    padding: 5px 8px;
+  }
 }
 </style>

@@ -1,16 +1,17 @@
 <template>
-    <div class="payment__popup">
+    <div class="payment__popup" :class="{'bottom': hasMenu}">
         <div class="payment__inner">
             <div class="payment__top">
-                <p>Добавить оплату</p>
-                <div class="close" @click="closePayment">
+                <slot name="title"></slot>
+                <div class="close" @click.stop="closePayment">
                     <i class="fas fa-times"></i>
                 </div>
             </div>
             <div class="payment__input">
-                <input type="text" ref="payment" inputmode="tel" v-model="money">
+                <input type="text" ref="payment" inputmode="tel" v-model="money" @keypress.stop="isNumber($event)" @keyup.stop="isMore()" :class="{'notValid':!isValid&&!is_crm}">
+                <p v-if="!isValid&&!is_crm" class="error">Сумма оплаты/скидки/залога не может превышать остаток</p>
             </div>
-            <div class="addPayment" @click="addPayment">
+            <div class="addPayment" @click.stop="addPayment" :class="{'disableBtn':!isValid&&!is_crm}">
                 Добавить
             </div>
         </div>
@@ -18,9 +19,11 @@
 </template>
 <script>
 export default {
+    props:['remain', 'hasMenu', 'is_crm'],
     data(){
         return{
-            money: ''
+            money: '',
+            isValid: true
         }
     },
     mounted(){
@@ -29,9 +32,24 @@ export default {
     methods: {
         closePayment(){
             this.$emit('closePayment');
+            this.money = '';
         },
         addPayment(){
-            this.$emit('addPayment', parseInt(this.money))
+            this.isValid&&this.$emit('addPayment', parseInt(this.money))
+            this.money = '';
+        },
+        isNumber: function(evt) {
+            evt = (evt) ? evt : window.event;
+            var charCode = (evt.which) ? evt.which : evt.keyCode;
+            if (charCode > 31 && (charCode < 48 || charCode > 57)){
+                evt.preventDefault();
+            }
+            else {
+                return true;
+            }
+    },
+    isMore: function(){
+        this.isValid = !(parseInt(this.money) > this.remain && this.money.length)
         }
     }
 }
@@ -63,9 +81,19 @@ export default {
     &__input{
         input{
             width: 100%;
+            height: 36px;
+            padding: 4px 4px;
+            border: 1px solid black;
         }
 
     }
+}
+.notValid{
+    border: 1px solid red;
+}
+.error{
+    color: red;
+    font-size: 12px;
 }
 .addPayment{
     display: flex;
@@ -74,5 +102,13 @@ export default {
     background: #000;
     color: #fff;
     margin-top: 16px;
+    padding: 6px 0px;
+}
+.disableBtn{
+    background: #9D9D9D;
+    pointer-events: none;
+}
+.bottom{
+    bottom: 49px;
 }
 </style>

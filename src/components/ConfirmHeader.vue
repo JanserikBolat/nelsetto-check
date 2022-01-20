@@ -3,7 +3,7 @@
         <div class="confirmHeader__inner">
             <div class="confirmHeader__left">
                 <div class="backToOrders">
-                    <div class="back__button" @click="resetStore()">
+                    <div class="back__button" @click.stop="resetStore()">
                         <i class="fas fa-chevron-left"></i>
                     </div>
                 </div>
@@ -11,10 +11,11 @@
                     <slot name="main"></slot>
                     <slot name="status"></slot>
                     <slot name="date"></slot>
+                    <slot name="title"></slot>
                 </div>
             </div>
             <div class="userInformation">
-                    <client-card-mini :order="order"/>
+                <client-card-mini :client="order.client" :company="order.company"/>
             </div>
         </div>
     </div>    
@@ -26,19 +27,13 @@ export default {
   components: { ClientCardMini },
     computed: {
         ...mapState('order', ['order']),
-        getOrderId: function(){
-            if(this.order.orderId.length>5){
-                return this.order.orderId.substring(0,5)+'...';
-            }
-            return this.order.orderId
-        }
     },
     methods: {
         resetStore(){
             this.$store.dispatch('order/resetState')
             this.$store.dispatch('booking/resetState')
-            this.$router.push({path:'/orders'})
-        }
+            this.$emit('back');        
+            }
     }
 }
 </script>
@@ -61,18 +56,19 @@ export default {
 .confirmHeader__inner{
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 .confirmHeader__left{
     display: flex;
 }
 .orderDescription{
     margin-left: 16px;
-    .order{
-        &__id{
-            font-weight: 500;
-            font-size: 20px;
-            word-break: break-all;
-        }
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    .order__id, .field__time{
+        font-weight: 500;
+        font-size: 20px;
     }
 }
 .back__button{
@@ -84,29 +80,5 @@ export default {
     align-items: center;
     background: #fff;
     box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.04), 0px 0px 2px rgba(0, 0, 0, 0.06), 0px 0px 1px rgba(0, 0, 0, 0.04);
-}
-.userInformation{
-    display: flex;
-    align-items: center;
-    background: rgba(0, 0, 0, 0.04)
-}
-.user{
-    &__photo{
-        width: 20px;
-        height: 100%;
-        margin-right: 12px;
-        margin-left: 9.67px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        img, i{
-            width: 100%;
-            height: 20px;
-            border-radius: 50%;
-        }
-    }
-    &__info{
-        margin-right: 8px;
-    }
 }
 </style>

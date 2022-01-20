@@ -1,20 +1,28 @@
-import {SET_DATE, ADD_BOOKING, SET_ID,SET_PAYTYPE, REPLACE_BOOKING, SET_CLIENT, SET_ORDER, SET_TYPE, SET_BOOKINGDISCOUNT, SET_STATUS} from '../mutation-types.js'
+import {SET_DATE, ADD_BOOKING,SET_COMPANY, ADD_DEPOSIT ,SET_PAYTYPE, REPLACE_BOOKING, SET_CLIENT, SET_ORDER, SET_TYPE, SET_BOOKINGDISCOUNT, SET_STATUS, UPDATE_ORDER} from '../mutation-types.js'
 const getDefaultState = ()=>{
   return {
     order: {
-      bookings: [],
+      booking: [],
       client: {
-        client_name:'',
-        client_surname: '',
-        client_tel: '',
-        company: ''
+        id: null,
+        firstname:'',
+        lastname: '',
+        phone: '',
+        is_temporary: null,
+        avatar: ''
       },
-      orderId: '',
-      pay_type: 'cash',
+      company: '',
+      payment_type: 'cash',
       start_date: '',
       end_date: '',
-      type: 'Разовая бронь',
-      status: 'В ожидании'
+      type: 0,
+      status: 'pending',
+      deposit: 0,
+      total_discount: 0,
+      total_price: 0,
+      paid: 0,
+      debt: 0,
+      residue: 0
     }
   }
 }
@@ -23,42 +31,54 @@ const orderModule = {
   state: ()=> getDefaultState(),
   getters: {
     getAllDiscount: (state)=>{
-      return state.order.bookings.reduce((acc, curr)=>acc+curr.booking_discount, 0);
+      return state.order.booking.filter(e=>e.status!=='canceled').reduce((acc, curr)=>acc+parseInt(curr.discount), 0);
     },
     getAllCost: (state)=>{
-      return state.order.bookings.reduce((acc, curr)=>acc+curr.price, 0);
+      return state.order.booking.filter(e=>e.status!=='canceled').reduce((acc, curr)=>acc+parseInt(curr.price), 0);
     },
     getAllPaid: (state)=>{
-      return state.order.bookings.reduce((acc, curr)=>acc+curr.paid, 0);
+      return state.order.booking.filter(e=>e.status!=='canceled').reduce((acc, curr)=>acc+parseInt(curr.paid), 0);
     },
     getRemainMoney: (state, getters)=>{
       return getters.getAllCost-getters.getAllDiscount-getters.getAllPaid;
     },
+    getStatus: (state)=>{
+      switch(state.status){
+          case 'completed': 
+              return 'Завершен';
+          case 'canceled': 
+              return 'Отменен';
+          case 'pending': 
+              return 'В ожидании';
+          case 'activated': 
+              return 'Потвержден';
+      }
+    },
     getOrder: (state)=>{
-      return {...state.order, start_date: state.order.start_date, end_date: state.order.end_date}
+      return state.order;
     },
     getClient: (state)=>{
-      return state.order.client
-    },
-    getBookings: (state)=>{
-      return state.order.bookings
+      return state.order.client;
     }
   },
   mutations: {
     [SET_DATE](state, date){
       state.order = {...state.order, start_date: date.start_date, end_date: date.end_date}
     },
-    [ADD_BOOKING](state, booking){
-      state.order = {...state.order, bookings: [...state.order.bookings, booking]}
+    [SET_COMPANY](state, company){
+      state.order = {...state.order, company: company}
     },
-    [SET_ID](state, id){
-      state.order = {...state.order, orderId: id}
+    [ADD_BOOKING](state, booking){
+      state.order = {...state.order, booking: [booking]}
     },
     [SET_PAYTYPE](state, pt){
-      state.order = {...state.order, pay_type: pt}
+      state.order = {...state.order, payment_type: pt}
     },
     [SET_CLIENT](state, client){
       state.order = {...state.order, client: {...client}}
+    },
+    [ADD_DEPOSIT](state, deposit){
+      state.order = {...state.order, deposit: deposit}
     },
     [SET_TYPE](state, type){
       state.order = {...state.order, type: type}
@@ -69,14 +89,17 @@ const orderModule = {
     [SET_ORDER](state, order){
       state.order = {...order}
     },
+    [UPDATE_ORDER](state, order){
+      state.order = {...state.order, ...order}
+    },
     [REPLACE_BOOKING](state, booking){
-      state.order = {...state.order, bookings: booking}
+      state.order = {...state.order, booking: booking}
     },
     [SET_BOOKINGDISCOUNT](state, discount){
-      const newBookings = state.order.bookings.map(element => {
-        return {...element, booking_discount: discount}
+      const newBookings = state.order.booking.map(element => {
+        return {...element, discount: discount}
       });
-      state.order = {...state.order, bookings: newBookings}
+      state.order = {...state.order, booking: newBookings}
     },
     resetState(state){
       Object.assign(state, getDefaultState())
@@ -85,6 +108,9 @@ const orderModule = {
   actions: {
     resetState({commit}){
       commit('resetState');
+    },
+    setCompany({commit}, company){
+      commit(SET_COMPANY, company);
     },
     setType({commit}, type){
       commit(SET_TYPE, type);
@@ -101,20 +127,23 @@ const orderModule = {
     setPayType({commit}, pt){
       commit(SET_PAYTYPE, pt)
     },
-    setId({commit}, id){
-      commit(SET_ID, id)
-    },
     setStatus({commit}, status){
       commit(SET_STATUS, status)
     },
     setBookingDiscount({commit}, discount){
       commit(SET_BOOKINGDISCOUNT, discount)
     },
+    addDeposit({commit}, deposit){
+      commit(ADD_DEPOSIT, deposit);
+    },
     setOrder({commit}, order){
       commit(SET_ORDER, order)
     },
     replaceBooking({commit}, booking){
       commit(REPLACE_BOOKING, booking)
+    },
+    updateOrder({commit}, order){
+      commit(UPDATE_ORDER, order);
     }
   }
 };

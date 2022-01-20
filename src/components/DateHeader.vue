@@ -1,7 +1,7 @@
 <template>
     <div class="timetable__dateline">
         <div class="timetable__date">
-            <p :class="isToday?'today':''">{{date.format('DD MMMM, dd')}}</p>
+            <p :class="isToday?'today':''">{{date.locale('ru').format('DD MMMM, dd')}}</p>
             <div v-if="buttonNeeded" class="changeDate__buttons">
                 <div class="prev__day" @click="handleClick('prev')">
                     <i class="fas fa-angle-left"></i>
@@ -25,51 +25,58 @@ export default {
     },
     computed: {
         isToday: function(){
-            return this.date.format('DD MMMM, dd')===dayjs().locale('ru').format('DD MMMM, dd')
+            return this.date.locale('ru').format('DD-MMMM-YYYY')===dayjs().locale('ru').format('DD-MMMM-YYYY')
         }
     }
 }
 </script>
 <style lang="scss" scoped>
-    .timetable{
-        &__dateline{
-            position: sticky;
-            left: 0;
-            top: 0;
-            width: 100vw;
-            height: 44px;
-            background-color: #fff;
-        }
-        &__date{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            p{
-                font-family: 'Roboto', sans-serif;
-                font-weight: 700;
-                font-size: 16px;
-                padding-left: 8px;
-                padding-top: 20px;
-                }
-        }
+.timetable{
+  &__dateline{
+    width: 100%;
+    height: 44px;
+    background-color: #fff;
+  }
+  &__date{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    p{
+      font-family: 'Roboto', sans-serif;
+      font-weight: 700;
+      font-size: 16px;
+      padding-left: 8px;
+      position: -webkit-sticky;
+      position: sticky;
+      left: 0;
     }
-    .changeDate__buttons{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100px;
-            margin-right: 25px;
-            .prev__day, .next__day{
-                width: 25px;
-                height: 20px;
-                border: 1px solid #9D9D9D;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                cursor: pointer;
-            }
-        }
-    .today{
-        color: red;
+  }
+}
+.changeDate__buttons{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100px;
+  padding-right: 8px;
+  position: -webkit-sticky;
+  position: sticky;
+  right: 0;
+  .prev__day, .next__day{
+    width: 38px;
+    height: 24px;
+    border: 1px solid #9D9D9D;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    svg{
+      width: 12px;
+      height: 12px;
     }
+  }
+}
+.today{
+  color: red;
+}
 </style>

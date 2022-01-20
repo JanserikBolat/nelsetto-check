@@ -3,51 +3,55 @@
         <div class="bookingCard__inner">
             <div class="booking__time">
                 <p class="time key">Время брони:</p>
-                <p class="time value">{{start_time}}-{{end_time}}</p>
+                <p class="time value">{{booking.start_time.substring(0,5)}}-{{booking.end_time.substring(0,5)}}</p>
             </div>
             <div class="booking__field">
                 <p class="field key">Площадка:</p>
-                <p class="field value">Площадка {{field_id}}</p>
+                <p class="field value">{{booking.playfield.name}}</p>
             </div>
             <div class="booking__price">
                 <p class="price key">Стоимость:</p>
-                <p class="price value">{{price}} тг</p>
+                <p class="price value">{{booking.price}} тг</p>
             </div>
             <div class="booking__paytype">
                 <p class="paytype key">Способ оплаты</p>
-                <p class="paytype value">{{order.pay_type==='cash'?"Наличными":"По реквизитам"}}</p>
+                <p class="paytype value">{{order.payment_type==='cash'?"Наличными":"По реквизитам"}}</p>
             </div>
             <div class="booking__discount">
                 <p class="discount key">Сумма скидки:</p>
-                <p class="discount value">{{booking_discount}} тг</p>
+                <p class="discount value">{{booking.discount}} тг</p>
             </div>
-            <div v-show="getRemainMoney>0&&orderValid" class="discount__button" @click="addDiscount()">
+            <div v-show="booking.debt>0&&orderValid" class="discount__button" @click="addDiscount()">
                 Добавить скидку
             </div>
             <div class="booking__paid">
                 <p class="paid key">Оплачено:</p>
-                <p class="paid value">{{paid}} тг</p>
+                <p class="paid value">{{booking.paid}} тг</p>
             </div>
-            <div v-show="getRemainMoney>0&&orderValid" class="pay__button" @click="addPay()">
+            <div v-show="booking.debt>0&&orderValid" class="pay__button" @click="addPay()">
                 Добавить оплату
             </div>
             <div class="booking__remaining">
-                <p class="remaining key">Остаток:</p>
-                <p class="remaining value">{{getRemainMoney}} тг</p>
+                <p class="remaining key">{{booking.status==='completed'?'Долг':'Остаток'}}</p>
+                <p class="remaining value">{{booking.debt}} тг</p>
             </div>
         </div>
-        <payment-popup v-show="show" @addPayment="addPayment" @closePayment="closePayment"/>
+        <payment-popup v-show="show" @addPayment="addPayment" @closePayment="closePayment" :remain="booking.debt" :is_crm="order.client.is_crm">
+            <template v-slot:title>
+                    <p v-if="active==='payment'">Добавьте оплату</p>
+                    <p v-if="active==='discount'">Добавьте скидку</p>
+                </template>
+        </payment-popup>
     </div>
 </template>
 <script>
-import {mapState, mapGetters} from 'vuex'
+import {mapState} from 'vuex'
 import PaymentPopup from './PaymentPopup.vue'
 export default {
     data(){
         return{
             show: false,
             active: 'payment',
-            orders: JSON.parse(localStorage.getItem('orderInfo'))
         }
     },
   components: { PaymentPopup },
@@ -55,31 +59,13 @@ export default {
         addPayment(money){
             switch(this.active){
                 case 'payment':
-                    this.$store.dispatch('booking/setBookingPaid', money);
+                    this.$store.dispatch('booking/setBookingPaid', {money: money, id:this.booking.id});
                     break;
                 case 'discount':
-                    this.$store.dispatch('booking/addBookingDiscount', money);
+                    this.$store.dispatch('booking/setBookingDiscount', {discount: money, id:this.booking.id});
                     break;
             }
-            for(let i = 0;i<this.getOrder.bookings.length;i++){
-                if(this.getOrder.bookings[i].bookingId===this.bookingId){
-                    const localBookings = this.getOrder.bookings;
-                    localBookings[i] = this.getBooking
-                    this.$store.dispatch('order/replaceBooking', localBookings);
-                    break;
-                }
-            }
-            this.updateLocalStorage(this.getOrder);
             this.show = false
-        },
-        updateLocalStorage(order){
-            let oId = order.orderId;
-            for(let i=0;i<this.orders.length;i++){
-                if(this.orders[i].orderId==oId){
-                    this.orders[i] = order;
-                }
-            }
-            localStorage.setItem('orderInfo', JSON.stringify(this.orders));
         },
         closePayment(){
             this.show = false;
@@ -94,12 +80,10 @@ export default {
         }
     },
     computed: {
-        ...mapState('booking', ['bookingId','start_time', 'end_time', 'field_id', 'booking_discount', 'price', 'paid']),
+        ...mapState('booking', ['booking']),
         ...mapState('order', ['order']),
-        ...mapGetters('booking', ['getRemainMoney', 'getBooking']),
-        ...mapGetters('order', ['getOrder']),
         orderValid(){
-            return this.order.status!=='Отменено'
+            return this.booking.status==='completed'||this.booking.status==='activated'
         }
     }
 }

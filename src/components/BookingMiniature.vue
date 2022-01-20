@@ -1,57 +1,73 @@
 <template>
-    <div class="main__content" :class="{'fullPay': fullPay}" @click="goToBooking()">
+    <div class="main__content"  @click="goToBooking()" :class="{'completedCard': info.status==='completed'}">
+      <div class="backdrop" v-if="openPopup" @click.stop="openPopup = false"></div>
         <div class="content__inner">
             <div class="content_top">
                 <div class="contentTop__inner">
                     <div class="content__left">
                         <div class="mini__description">
-                            <b>{{info.booking.start_time}}-{{info.booking.end_time}}</b>, Площадка {{info.booking.field_id}}
+                            <p :class="{'completed': info.status==='completed'}" v-if="info.status==='completed'">Завершенная бронь</p>
+                            <b>{{info.start_time.substring(0,5)}}-{{info.end_time.substring(0,5)}}</b>, {{info.playfield.name}}
                         </div>
                         <div class="info__payload">
                             <div class="payload__type">
-                                {{info.pay_type==="cash"?"Наличными":"По реквизитам"}}
+                                {{info.order.payment_type==="cash"?"Наличными":"По реквизитам"}}
                             </div>
-                            <div class="payload__remain">
-                                Остаток:  {{getRemainMoney}}тг
+                            <div class="payload__remain" :class="{'fullPay': fullPay}">
+                                {{fullPay?'Оплачено': `Остаток: ${info.debt} тг`}}
                             </div>
                         </div>
                     </div>
                     <div class="content__right">
-                        <ClientCardMini :order="info"/>
+                        <ClientCardMini :client="info.client" :hasMenu="true" :company="info.order.company"/>
                     </div>
                 </div>
             </div>
             <div v-if='!fullPay' class="content__bottom">
-                    <div class="payload__button" @click.stop="addPayload()">
+                    <div class="payload__button" @click.stop="openPopup=true">
                         Добавить оплату
                     </div>
+            </div>
+            <div class="payment">
+                <payment-popup v-if="openPopup" @addPayment="addPayload" @closePayment="openPopup = false" :remain="info.debt" :hasMenu="true" :is_crm="info.client.is_crm">
+                <template v-slot:title>
+                    <p>Добавьте оплату</p>
+                </template>    
+            </payment-popup> 
             </div>
         </div>
     </div>
 </template>
 <script>
 import ClientCardMini from './ClientCardMini.vue'
+import PaymentPopup from './PaymentPopup.vue'
 export default {
+    data(){
+        return{
+            openPopup:false
+        }
+    },
     props: ['info'],
     components: {
-        ClientCardMini
+        ClientCardMini, PaymentPopup
     },
     computed: {
         fullPay: function(){
-            return  this.getRemainMoney<=0;
+            return  this.info.debt<=0;
         },
         getRemainMoney: function(){
-            return this.info.booking.price-(this.info.booking.paid+this.info.booking.booking_discount)
+            return this.info.price-(this.info.paid+this.info.booking_discount)
         }
     },
     methods: {
-        addPayload(){
-            this.$emit('addPayload', this.info.orderId, this.info.booking.bookingId)
+        async addPayload(money){
+            await this.$store.dispatch('booking/setBookingPaid', {money: money, id:this.info.id});
+            this.openPopup = false;
+            window.location.reload()
         },
         goToBooking(){
-            this.$store.dispatch('order/setOrder', this.info)
-            this.$store.dispatch('booking/setBooking', this.info.booking)
-            this.$router.push({path:`/order/:${this.info.orderId}/booking/:${this.info.booking.bookingId}`})
+            this.$store.dispatch('booking/setBooking', this.info)
+            this.$router.push({name: 'singleBooking', params: {id: this.info.order_id, bookingid: this.info.id}});
         }
     }
 }
@@ -68,18 +84,36 @@ export default {
     background: #FFFFFF;
     margin: 16px;
 }
+.completedCard{
+    background: #EDEDED;
+    border: 1px solid #D1D1D1;
+}
 .content_top{
     padding-left: 12px;
     padding-top: 12px;
     padding-bottom: 26px;
+}
+.completed{
+    font-style: italic;
+    font-size: 12px;
+    line-height: 14px;
+    color: rgba(0, 0, 0, 0.54);
+    margin-bottom: 8px;
+}
+.info__payload{
+    margin-top: 8px;
 }
 .contentTop__inner{
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
+.fullPay{
+    font-weight: 500;
+}
 .payload__type, .payload__remain{
     font-size: 12px;
+    line-height: 14px;
 }
 .client{
     &__photo{
@@ -103,15 +137,22 @@ export default {
         font-weight: 700;
     }
 }
-.fullPay{
-    background: linear-gradient(0deg, rgba(79, 244, 20, 0.15), rgba(79, 244, 20, 0.15)), #FFFFFF;
-}
 .payload__button{
     width: 100%;
-    background: rgba(0, 0, 0, 0.04);
-    border: 0.3px solid rgba(0, 0, 0, 0.5);
+    background: #03A9F4;
+    color: #fff;
+    height: 36px;
     display: flex;
     justify-content: center;
     align-items: center;
+}
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 10;
 }
 </style>

@@ -1,65 +1,67 @@
-import { SET_BOOKINGID, SET_BOOKINGDISCOUNT,ADD_BOOKINGDISCOUNT, SET_BOOKING, SET_BOOKINGDATE, SET_BOOKINGTIME, SET_DURATION, SET_BOOKINGFIELD, SET_BOOKINGPAID, SET_BOOKINGPRICE, SET_STATUS} from "../mutation-types";
-
+import {SET_BOOKINGDISCOUNT, UPDATE_BOOKING,SET_FIELDNAME, ADD_BOOKINGDISCOUNT,SET_BOOKING, SET_BOOKINGDATE, SET_BOOKINGTIME, SET_DURATION, SET_BOOKINGFIELD, SET_BOOKINGPAID, SET_BOOKINGPRICE, SET_STATUS} from "../mutation-types";
+import dayjs from "dayjs";
+import 'dayjs/locale/ru';
+import axios from 'axios'
 const getDefaultState = ()=>{
     return{
-        bookingId: '',
-        booking_discount: 0,
-        date: '',
-        end_time: '',
-        field_id: '',
-        paid: 0,
-        price: 0,
-        start_time: '',
-        duration: '',
-        status: 'В ожидании',
+        booking: {
+            id: null,
+            order_id: null,
+            discount: 0,
+            date: '',
+            end_time: '',
+            playfield_id: '',
+            paid: 0,
+            price: 0,
+            start_time: '',
+            duration: 0,
+            status: 'pending',
+            debt: null,
+            
+        }
     }
 }
+//const url = window.location.origin.replace('playfields.', '');
 const bookingModule = {
     namespaced: true,
     state: {...getDefaultState()},
     mutations: {
-        [SET_BOOKINGID](state, id){
-            state.bookingId = id
-        },
         [ADD_BOOKINGDISCOUNT](state, discount){
-            state.booking_discount += discount 
+            state.booking.discount += discount 
         },
         [SET_BOOKINGDISCOUNT](state, discount){
-            state.booking_discount = discount 
+            state.booking.discount = discount 
         },
         [SET_BOOKINGDATE](state, date){
-            state.date = date
+            state.booking.date = date
         },
         [SET_BOOKINGTIME](state, time){
-            state.start_time = time.start_time
-            state.end_time = time.end_time
+            state.booking.start_time = time.start_time
+            state.booking.end_time = time.end_time
         },
         [SET_BOOKINGFIELD](state, field_id){
-            state.field_id = field_id
+            state.booking.playfield_id = field_id
+        },
+        [SET_FIELDNAME](state, name){
+            state.booking.pf_name = name;
         },
         [SET_BOOKINGPAID](state, paid){
-            state.paid+= paid
+            state.booking.paid+= paid
         },
         [SET_BOOKINGPRICE](state, price){
-            state.price = price
+            state.booking.price = price
         },
         [SET_DURATION](state, duration){
-            state.duration = duration;
+            state.booking.duration = duration;
         },
         [SET_BOOKING](state, booking){
-            state.bookingId = booking.bookingId
-            state.booking_discount = booking.booking_discount
-            state.date = booking.date 
-            state.end_time = booking.end_time
-            state.field_id = booking.field_id 
-            state.paid = booking.paid
-            state.price = booking.price
-            state.start_time = booking.start_time
-            state.duration = booking.duration
-            state.status = booking.status
+            state.booking = {...booking}
+        },
+        [UPDATE_BOOKING](state, booking){
+            state.booking = {...state.booking, ...booking}
         },
         [SET_STATUS](state, status){
-            state.status = status
+            state.booking.status = status
         },
         resetState(state){
             Object.assign(state, getDefaultState())
@@ -68,11 +70,36 @@ const bookingModule = {
     },
     getters:{
         getRemainMoney: (state)=>{
-            return state.price-state.booking_discount-state.paid;
+            return state.booking.price-state.booking.discount-state.booking.paid;
           },
           getBooking: (state)=>{
-              return {...state};
+              return {...state.booking};
         },
+        getDuration: (state)=>{
+            const hours = Math.floor(state.booking.duration/3600)
+            const minutes = (state.booking.duration%3600)/60;
+            return `${hours} ч ${minutes} мин`
+        },
+        durationFormat: (state)=>{
+            const hours = Math.floor(state.booking.duration/60)
+            const minutes = state.booking.duration%60
+            return dayjs().hour(hours).minute(minutes).second(0).format('HH:mm:ss')
+        },
+        getStatus: (state)=>{
+            switch(state.status){
+                case 'completed': 
+                    return 'Завершена';
+                case 'canceled': 
+                    return 'Отменена';
+                case 'pending': 
+                    return 'В ожидании';
+                case 'activated': 
+                    return 'Потверждена';
+            }
+        },
+        getPlayfieldName: (state)=>{
+            return JSON.parse(localStorage.getItem('facility')).find(e=>e.id===state.booking.playfield_id)?.pf_name??'';
+        }
     },
     actions: {
         setBookingTime({commit}, info){
@@ -81,17 +108,22 @@ const bookingModule = {
         setBookingField({commit}, f){
             commit(SET_BOOKINGFIELD, f)
         },
+        setPlayfieldName({commit}, f){
+            commit(SET_FIELDNAME, f)
+        },
         setBookingDate({commit}, date){
             commit(SET_BOOKINGDATE, date)
         },
         setBookingPrice({commit}, price){
             commit(SET_BOOKINGPRICE, price);
         },
-        setBookingId({commit}, id){
-            commit(SET_BOOKINGID, id);
+        setBookingDiscountLocal({commit}, d){
+            commit(SET_BOOKINGDISCOUNT, d);
         },
-        setBookingDiscount({commit}, discount){
-            commit(SET_BOOKINGDISCOUNT, discount)
+        async setBookingDiscount({commit}, info){
+            await axios.post(`https://almvtst.ml/crm/user/${window.$cookies.get('id')}/reservation/${info.id}/discount`, {discount: info.discount}, {
+                headers: {'Authorization': `Bearer ${window.$cookies.get('access_token')}`}}
+            ).then(res=> commit(UPDATE_BOOKING, res.data.booking))
         },
         addBookingDiscount({commit}, discount){
             commit(ADD_BOOKINGDISCOUNT, discount)
@@ -99,11 +131,16 @@ const bookingModule = {
         setDuration({commit}, duration){
             commit(SET_DURATION, duration)
         },
-        setBookingPaid({commit}, money){
-            commit(SET_BOOKINGPAID, money)
+        async setBookingPaid({commit}, info){
+            await axios.post(`https://almvtst.ml/crm/user/${window.$cookies.get('id')}/reservation/${info.id}/payment`, {payment: info.money}, {
+                headers: {'Authorization': `Bearer ${window.$cookies.get('access_token')}`}}
+            ).then(res=>commit(UPDATE_BOOKING, res.data.booking))
         },
         setBooking({commit}, booking){
             commit(SET_BOOKING, booking)
+        },
+        updateBooking({commit}, booking){
+            commit(UPDATE_BOOKING, booking)
         },
         setStatus({commit}, status){
             commit(SET_STATUS, status)

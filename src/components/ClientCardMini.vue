@@ -1,40 +1,34 @@
 <template>
-    <div class="user__description" @click.stop="showClientCard()">
-        <div v-if="show" class="backdrop" @click.stop="closePopup"></div>
+    <div class="user__description" @click.stop="show = true">
+        <div v-if="show" class="backdrop" @click.stop="show =false"></div>
         <div class="user__photo">
-        <img :src="order.client.photo" alt="" v-if="order.client.photo">
-            <i class="fas fa-user-circle" v-else-if="!order.client.photo"></i>
+        <img :src="`${url}/storage/profile_original_avatars/${client.avatar}`" alt="" v-if="client.avatar!=='default_avatar.png'">
+            <i class="fas fa-user-circle" v-else-if="client.avatar==='default_avatar.png'"></i>
         </div>
         <div class="user__info">
             <div class="user__name">
-            {{order.client.client_name}}
+            {{client.firstname}}
         </div>
-        <div class="user__company" v-if="order.client.company!=''">
-            {{order.client.company}}
+        <div class="user__company" v-if="company">
+            {{company}}
         </div>
         </div>
-        <client-card :client="order.client" v-show="show" />
+        <client-card :client="client" v-if="show" :clicked="show" :hasMenu="hasMenu" :company="company"/>
     </div>
 </template>
 <script>
 import ClientCard from './ClientCard.vue'
 export default {
-    props: ['order'],
+    props: ['client', 'hasMenu', 'company'],
     components: {
         ClientCard
     },
-    data(){return{
-        show: false
+    data(){
+        return{
+            show: false,
+            url: window.location.origin.replace('playfields.', '')
     }
     },
-    methods: {
-        showClientCard(){
-            this.show = true
-        },
-        closePopup(){
-            this.show = false;
-        }
-    }
 }
 </script>
 <style lang="scss" scoped>
@@ -52,7 +46,7 @@ export default {
         display: flex;
         justify-content: center;
         align-items: center;
-        img, i{
+        img{
             width: 100%;
             height: 20px;
             border-radius: 50%;
