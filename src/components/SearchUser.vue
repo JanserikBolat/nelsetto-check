@@ -4,9 +4,12 @@
             <div class="search__input">
                     <label  class="phone__label" for="phone">Номер телефона</label><br>
                     <div class="search__wrapper">
-                        <p class="tel__code">+7</p>
+                        <p class="tel__code" :class="{'disabledPhone':disabled}">+7</p>
                         <input v-model="search" type="tel" id = "phone" name="phone"  title="Ваш телефонный номер"
-                        :class="$v.search.$error?'invalid':''"
+                        maxlength="10"
+                        v-mask="'(###)-### -##-##'"
+                        :disabled = disabled
+                        :class="$v.search.$error&&!disabled?'invalid':''"
                         >
                     </div>
             </div>
@@ -20,6 +23,7 @@ import axios from 'axios'
 import UserInfo from '@/components/UserInfo'
 import { required, minLength, maxLength } from 'vuelidate/lib/validators'
 export default{
+    props: ['info', 'disabled'],
     data(){
         return{
             data: [],
@@ -40,7 +44,6 @@ export default{
     async created(){
         const {data} = await axios.get("https://random-data-api.com//api/users/random_user?size=15")
         this.data = data
-        console.log(this.data)
     },
     methods: {
         searchNumber(){
@@ -51,8 +54,7 @@ export default{
             else{
                 this.filteredResult = this.data.filter((user)=>user.phone_number===this.search)
                 if(this.filteredResult.length===0){
-                    console.log(this.search)
-                    this.$router.push({name: 'registerUser', params: {telephoneNumber: this.search}})
+                    this.$router.push({name: 'registerUser', params: {info: {...this.info, telephoneNumber: this.search}}})
                 }
             }
         }
@@ -75,14 +77,17 @@ body
         font-size: 14px
     .search__wrapper
         position: relative
+        height: 25px
         p
             position: absolute
-            top: -10px
             height: 100%
             left: 2px
             width: 20px
             font-family: $font-stack
             font-size: 14px
+            display: flex
+            align-items: center
+            justify-content: center
         input 
             border-top-style: hidden
             border-right-style: hidden
@@ -93,6 +98,9 @@ body
             padding-left: 20px
             font-family: $font-stack
             font-size: 14px
+            height: 25px
         .invalid
             border-color: red
+.disabledPhone
+    color: #9D9D9D
 </style>

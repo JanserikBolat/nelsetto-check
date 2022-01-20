@@ -90,7 +90,7 @@ export default {
     },
 
     popupConfirmed() {
-      alert("Confirmed!");
+      this.$router.push({path: '/'})
       this.isPopupOpen = false;
     },
     formatTelephoneNumber(){
